@@ -186,7 +186,7 @@
     window.onload = function() {
         // 获取当前UTC时间
         var currentUTC = new Date();
-        currentUTC.setUTCHours(currentUTC.getUTCHours() - 5.5); // 将时间增加3个小时
+        currentUTC.setUTCHours(currentUTC.getUTCHours() - 5 ); // 将时间增加3个小时
 
         var formattedDate = currentUTC.toISOString().slice(0, 10).replace(/-/g, ""); // 格式化日期为YYYYMMDD
         var formattedTime = currentUTC.getUTCHours() < 12 ? "0000" : "1200"; // 根据小时选择时间部分
