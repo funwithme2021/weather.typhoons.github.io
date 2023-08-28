@@ -322,7 +322,7 @@
             var hours = imageDate.getHours().toString().padStart(2, '0');
             var currentMinutes = Math.floor(imageDate.getMinutes() / 10) * 10;
 
-            var imageDateAlt = new Date(currentDate - 20 * 60 * 1000); // 30 minutes ago
+            var imageDateAlt = new Date(currentDate - 15 * 60 * 1000); // 30 minutes ago
             var yearAlt = imageDateAlt.getFullYear();
             var monthAlt = (imageDateAlt.getMonth() + 1).toString().padStart(2, '0');
             var dayAlt = imageDateAlt.getDate().toString().padStart(2, '0');
