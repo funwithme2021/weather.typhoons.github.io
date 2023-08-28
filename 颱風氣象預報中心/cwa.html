@@ -170,10 +170,12 @@
                 </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('track-ensembles')">路徑系集</a>
                     <ul class="subcategories track-ensembles-subcategories">
+                        <li><a href="agency.html">各國系集</a></li>
                         <li><a href="https://www.ecmwf.int/en/forecasts/charts">ECMWH(1)</a></li>
                         <li><a href="https://www.easterlywave.com/typhoon/ensemble/">ECMWH(2)</a></li>
                         <li><a href="https://www.weathernerds.org/tc_guidance/">GFS</a></li>
-                        <li><a href="https://npd.cwb.gov.tw/NPD/products_display/product?menu_index=2">CWA</a></li>
+                        <li><a href="https://npd.cwb.gov.tw/NPD/products_display/product?menu_index=2">CWA(1)</a></li>
+                        <li><a href="cwaty.html">CWA(2)</a></li>
                     </ul>
                 </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('aaaaa')">常用網頁</a>
@@ -206,7 +208,7 @@
 <script>
 window.onload = function() {
     var currentUTC = new Date();
-    currentUTC.setUTCHours(currentUTC.getUTCHours() - 2.5);
+    currentUTC.setUTCHours(currentUTC.getUTCHours() - 2 );
 
     var formattedDate = currentUTC.toISOString().slice(0, 10).replace(/-/g, "");
     var currentUTCHours = currentUTC.getUTCHours();
@@ -218,19 +220,20 @@ window.onload = function() {
 
     var imageUrlPath = "https://www.cwb.gov.tw/Data/typhoon/TY_NEWS/PTA_" + formattedDate + formattedTime + "-120_zhtw.png";
     var imageUrlProbability = "https://www.cwb.gov.tw/Data/typhoon/TY_NEWS/WSP-MAP_" + formattedDate + formattedTime + "_zhtw.png";
+    
     var typhoonPathSection = document.querySelector(".section:nth-child(1)"); // 選擇第一個 section
     var stormProbabilitySection = document.querySelector(".section:nth-child(2)"); // 選擇第二個 section
 
     var typhoonPathImg = document.createElement("img");
     typhoonPathImg.src = imageUrlPath;
     typhoonPathImg.style.width = "80%";
-    typhoonPathImg.alt = "颱風路徑預報";
+    typhoonPathImg.alt = "西太平洋目前無颱風資訊";
     typhoonPathSection.appendChild(typhoonPathImg);
 
     var stormProbabilityImg = document.createElement("img");
     stormProbabilityImg.src = imageUrlProbability;
     stormProbabilityImg.style.width = "80%";
-    stormProbabilityImg.alt = "暴風圈侵襲機率";
+    stormProbabilityImg.alt = "西太平洋目前無颱風資訊";
     stormProbabilitySection.appendChild(stormProbabilityImg);
 };
 
