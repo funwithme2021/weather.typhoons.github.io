@@ -268,7 +268,7 @@
     currentUTC.setUTCHours(currentUTC.getUTCHours() - 0 );
     function insertSatelliteImage(category, containerId) {
             var currentDate = new Date();
-            var imageDate = new Date(currentDate - 660 * 60 * 1000); // 14 minutes ago
+            var imageDate = new Date(currentDate - 900 * 60 * 1000); // 14 minutes ago
             var year = imageDate.getFullYear();
             var year1 = year % 100; // Get the last two digits of the year
             var month = (imageDate.getMonth() + 1).toString().padStart(2, '0');

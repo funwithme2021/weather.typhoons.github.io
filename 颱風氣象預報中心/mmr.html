@@ -257,7 +257,7 @@
         </section>
 
         <section class="section">
-            <h3>未來24小時累積降雨預報(中央氣象局)</h3>
+            <h4>未來24小時累積降雨預報(中央氣象局)</h4>
             <div id="yes-image-container">
                 <!-- 這裡將插入動態生成的圖片 -->
             </div>
@@ -315,9 +315,20 @@
             var day = imageDate.getDate().toString().padStart(2, '0');
             var hours = imageDate.getHours().toString().padStart(2, '0');
             var currentMinutes = Math.floor(imageDate.getMinutes() / 10) * 10;
+
+            var imageDateAlt = new Date(currentDate - 20 * 60 * 1000); // 30 minutes ago
+            var yearAlt = imageDateAlt.getFullYear();
+            var monthAlt = (imageDateAlt.getMonth() + 1).toString().padStart(2, '0');
+            var dayAlt = imageDateAlt.getDate().toString().padStart(2, '0');
+            var hoursAlt = imageDateAlt.getHours();
+            var currentMinutesAlt = Math.floor(imageDateAlt.getMinutes() / 10) * 10;
+            
+
             
             // 調整分鐘部分，使其為00、10、20、30、40或50
             var minutes = currentMinutes >= 50 ? "50" : currentMinutes.toString().padStart(2, '0');
+            var minutesAlt = currentMinutesAlt >= 50 ? "50" : currentMinutesAlt.toString().padStart(2, '0');
+
             
             var imageUrl = "";
             if (category === "true-color") {
@@ -327,7 +338,7 @@
             } else if (category === "color-color") {
                 imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_01_${year}${month}${day}${hours}${minutes}.png`;
             } else if (category === "yes") {
-                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/raingauge_24_${year}${month}${day}${hours}${minutes}.png`;
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/raingauge_24_${yearAlt}${monthAlt}${dayAlt}${hoursAlt}${minutesAlt}.png`;
             } else if (category === "five") {
                 imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_12_${year}${month}${day}${hours}${minutes}.png`;
             } else if (category === "six") {
