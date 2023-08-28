@@ -3,12 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <div id="fb-root"></div>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/zh_TW/sdk.js#xfbml=1&version=v17.0" nonce="92lOZ46u"></script>
+
     <style>
         nav ul {
             list-style: none;
             display: flex;
             justify-content: center;
         }
+        .fb-page{ text-align: center;}
 
         nav li {
             margin: 0 15px;
@@ -103,20 +107,24 @@
           background-color: #ffffff;
           color: #fff;
         }
-        #five-image-container,
+
         #color-color-image-container,
         #yes-image-container,
+        #five-image-container,
+        #six-image-container,
         #enhanced-color-image-container,
         #image-container {
-    text-align: center;
+    text-align: left;
 }
-        #five-image-container img,
+ 
         #color-color-image-container img,
         #yes-image-container img,
+        #five-image-container img,
+        #six-image-container img,
         #image-container img,
         #enhanced-color-image-container img {
-            max-width: 100%; /* 設定最大寬度為父容器寬度 */
-            max-height: 600px; /* 設定最大高度，你可以根據需要調整 */
+            max-width: 70%; /* 設定最大寬度為父容器寬度 */
+            max-height: 350px; /* 設定最大高度，你可以根據需要調整 */
         }
 
         .special-section {
@@ -129,23 +137,23 @@
         flex: 1;
     }
     </style>
-    <title>颱風氣象整合網頁</title>
-    
+    <title>颱風氣象預報中心</title>
+    <script>
+         function toggleSubcategories(category) {
+            var subcategoryList = document.querySelector('.' + category + '-subcategories');
+            var otherSubcategoryLists = document.querySelectorAll('.subcategories.show');
+            
+            otherSubcategoryLists.forEach(function(list) {
+                if (list !== subcategoryList) {
+                    list.classList.remove('show');
+                }
+            });
+            
+            subcategoryList.classList.toggle('show');
+        }
+    </script>
 </head>
 <body>
-    <script>
-        function toggleSubcategories(category) {
-            var subcategoryList = document.querySelector('.' + category + '-subcategories');
-    var otherSubcategoryLists = document.querySelectorAll('.subcategories.show');
-    
-    otherSubcategoryLists.forEach(function(list) {
-        if (list !== subcategoryList) {
-            list.classList.remove('show');
-        }
-    });    
-    subcategoryList.classList.toggle('show');
-}       
-    </script>   
     <header>
         <nav>
             <ul>
@@ -162,17 +170,17 @@
                         <li><a href="#">美軍路徑</a></li>
                     </ul>
                 </li>
+                <li><a href="javascript:void(0);" onclick="toggleSubcategories('ty-reflectivity')">颱風警報</a>
+                    <ul class="subcategories ty-reflectivity-subcategories">
+                        <li><a href="ty.html">颱風警報</a></li>
+                        <li><a href="tywind.html">風雨預報</a></li>
+                    </ul>
+                </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('satellite-images')">衛星雲圖</a>
                     <ul class="subcategories satellite-images-subcategories">
                         <li><a href="taiwan.html">台灣地區</a></li>
                         <li><a href="east.html">東亞地區</a></li>
                         <li><a href="global.html">全景地區</a></li>
-                    </ul>
-                </li>
-                <li><a href="javascript:void(0);" onclick="toggleSubcategories('ty-reflectivity')">颱風警報</a>
-                    <ul class="subcategories ty-reflectivity-subcategories">
-                        <li><a href="ty.html">颱風警報</a></li>
-                        <li><a href="tywind.html">風雨預報</a></li>
                     </ul>
                 </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('radar-reflectivity')">迴波閃電</a>
@@ -222,82 +230,85 @@
         </nav>
     </header>
     <main>
-    <section class="section special-section">
-        <span>
-        <h4>今日累積雨量</h4>
-        <div id="yes-image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div>
-        </span>
-    </section>
+        <section class="section">
+            <span> <h3 >颱風概況</h3>           
+                    <objectdata="https://www.cwb.gov.tw/Data/typhoon/TY_PDF.pdf"type="application/pdf"width="100%"height="100%">
+                        <a href="https://www.cwb.gov.tw/Data/typhoon/TY_PDF.pdf" target="_blank">DownloadPDF.</a></p>                   
+                    </object>                   
+            </span>
+        </section>
 
-    <section class="section special-section">
-        <span>
-        <h4>兩日累積雨量</h4>
-        <div id="color-color-image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div></span>
+        <section class="section">
+            <span> <h3 >颱風警報單</h3>           
+            <img src="https://www.cwb.gov.tw/Data/typhoon/I10.png" 
+                 alt="目前無颱風警報發布" 
+                 width="460px" 
+                 height="600px"
+            ></span>
+        </section>
+
+        <section class="section">   
+            <span> <h3 >颱風動態圖</h3>
+            <img src="https://www.cwb.gov.tw/Data/typhoon/TY_WARN/B20.png" 
+                 alt="目前無颱風警報發布" 
+                 width="510px" 
+                 height="350px"
+            ></span>
+        </section>
         
-        <span>
-        <h4>三日累積雨量</h4>
-        <div id="enhanced-color-image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div></span>
+     
+            <div class="footer">
+            <p>Copyright © 2023 颱風氣象預報中心. All rights reserved. | V4.1.20230815</p>
+        </div>
+    </main>
 
-        <span>
-        <h4>四日累積雨量</h4>
-        <div id="image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div></span>
-        <span>
-        <h4>五日累積雨量</h4>
-        <div id="five-image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div></span>
-    </section>
-
-    
-
-    <div class="footer">
-        <p>Copyright © 2023 颱風氣象預報中心. All rights reserved. | V4.1.20230815</p>
-    </div>
-</main>
-
-</body>
-<script>
+    <script>
     
 
         // 這段程式碼用於動態生成圖片URL並插入圖片
         function insertSatelliteImage(category, containerId) {
             var currentDate = new Date();
-            var imageDate = new Date(currentDate - 31 * 60 * 1000); // 15分鐘前的時間
+            var imageDate = new Date(currentDate - 22 * 60 * 1000); // 15分鐘前的時間
             var year = imageDate.getFullYear();
             var month = (imageDate.getMonth() + 1).toString().padStart(2, '0');
             var day = imageDate.getDate().toString().padStart(2, '0');
             var hours = imageDate.getHours().toString().padStart(2, '0');
-            var currentMinutes = Math.floor(imageDate.getMinutes() / 60) * 60;
+            var currentMinutes = Math.floor(imageDate.getMinutes() / 10) * 10;
+
+            var imageDateAlt = new Date(currentDate - 20 * 60 * 1000); // 30 minutes ago
+            var yearAlt = imageDateAlt.getFullYear();
+            var monthAlt = (imageDateAlt.getMonth() + 1).toString().padStart(2, '0');
+            var dayAlt = imageDateAlt.getDate().toString().padStart(2, '0');
+            var hoursAlt = imageDateAlt.getHours();
+            var currentMinutesAlt = Math.floor(imageDateAlt.getMinutes() / 10) * 10;
+            
+
             
             // 調整分鐘部分，使其為00、10、20、30、40或50
-            var minutes = currentMinutes >= 00 ? "00" : currentMinutes.toString().padStart(2, '0');
+            var minutes = currentMinutes >= 50 ? "50" : currentMinutes.toString().padStart(2, '0');
+            var minutesAlt = currentMinutesAlt >= 50 ? "50" : currentMinutesAlt.toString().padStart(2, '0');
+
             
             var imageUrl = "";
             if (category === "true-color") {
-                imageUrl = `https://www.cwb.gov.tw/Data/rainfall/${year}-${month}-${day}_${hours}${minutes}.QZM8.jpg`;
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_06_${year}${month}${day}${hours}${minutes}.png`;
             } else if (category === "enhanced-color") {
-                imageUrl = `https://www.cwb.gov.tw/Data/rainfall/${year}-${month}-${day}_${hours}${minutes}.QZL8.jpg`;
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_03_${year}${month}${day}${hours}${minutes}.png`;
             } else if (category === "color-color") {
-                imageUrl = `https://www.cwb.gov.tw/Data/rainfall/${year}-${month}-${day}_${hours}${minutes}.QZK8.jpg`;
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_01_${year}${month}${day}${hours}${minutes}.png`;
             } else if (category === "yes") {
-                imageUrl = `https://www.cwb.gov.tw/Data/rainfall/${year}-${month}-${day}_${hours}${minutes}.QZJ8.jpg`;
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/raingauge_24_${yearAlt}${monthAlt}${dayAlt}${hoursAlt}${minutesAlt}.png`;
             } else if (category === "five") {
-                imageUrl = `https://www.cwb.gov.tw/Data/rainfall/${year}-${month}-${day}_${hours}${minutes}.QZN8.jpg`;
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_12_${year}${month}${day}${hours}${minutes}.png`;
+            } else if (category === "six") {
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_24_${year}${month}${day}${hours}${minutes}.png`;
             }
 
 
             var imageContainer = document.getElementById(containerId);
             var imageElement = document.createElement("img");
             imageElement.src = imageUrl;
-            imageElement.alt = `更新中(${category === "true-color" ? "更新中" : "真實色"})`;
+            imageElement.alt = `更新中(${category === "true-color" ? "更新中" : "更新中"})`;
             imageContainer.appendChild(imageElement);
         }
     </script>
@@ -309,9 +320,10 @@
             insertSatelliteImage("color-color", "color-color-image-container");
             insertSatelliteImage("yes", "yes-image-container");
             insertSatelliteImage("five", "five-image-container");
-
+            insertSatelliteImage("six", "six-image-container");
         };
+
+      
     </script>
-    
-    
+</body>
 </html>

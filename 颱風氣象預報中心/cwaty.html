@@ -172,6 +172,12 @@
                         <li><a href="#">美軍路徑</a></li>
                     </ul>
                 </li>
+                <li><a href="javascript:void(0);" onclick="toggleSubcategories('ty-reflectivity')">颱風警報</a>
+                    <ul class="subcategories ty-reflectivity-subcategories">
+                        <li><a href="ty.html">颱風警報</a></li>
+                        <li><a href="tywind.html">風雨預報</a></li>
+                    </ul>
+                </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('satellite-images')">衛星雲圖</a>
                     <ul class="subcategories satellite-images-subcategories">
                         <li><a href="taiwan.html">台灣地區</a></li>
@@ -276,7 +282,7 @@
             var hours = imageDate.getHours();
             var currentDateAlt = new Date();
 
-            var imageDateAlt = new Date(currentDateAlt - 1500 * 60 * 1000); // 30 minutes ago
+            var imageDateAlt = new Date(currentDateAlt - 900 * 60 * 1000); // 30 minutes ago
             var yearAlt = imageDateAlt.getFullYear();
             var year1Alt = yearAlt % 100; // Get the last two digits of the year
             var monthAlt = (imageDateAlt.getMonth() + 1).toString().padStart(2, '0');
