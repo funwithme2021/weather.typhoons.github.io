@@ -118,6 +118,15 @@
             max-width: 100%; /* 設定最大寬度為父容器寬度 */
             max-height: 500px; /* 設定最大高度，你可以根據需要調整 */
         }
+        .special-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .special-section > span {
+        flex: 1;
+    }
     </style>
     <title>颱風氣象整合網頁</title>
     
@@ -144,7 +153,7 @@
                     <ul class="subcategories typhoon-paths-subcategories">
                         <li><a href="http://www.typhoon2000.ph/multi/?name=NEPARTAK">各國路徑</a></li>
                         <li><a href="agency.html">各國系集</a></li>
-                        <li><a href="https://www.cwb.gov.tw/V8/C/P/Typhoon/TY_NEWS.html">台灣路徑</a></li>
+                        <li><a href="cwa.html">台灣路徑</a></li>
                         <li><a href="https://www.jma.go.jp/bosai/map.html#3/29.688/145.195/&elem=root&typhoon=all&contents=typhoon">日本路徑</a></li>
                         <li><a href="http://typhoon.weather.com.cn/">中國路徑</a></li>
                         <li><a href="https://www.kma.go.kr/chn/weather/typoon/typhoon_5days.jsp">韓國路徑</a></li>
@@ -161,10 +170,26 @@
                 </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('radar-reflectivity')">迴波閃電</a>
                     <ul class="subcategories radar-reflectivity-subcategories">
-                        <li><a href="mm.html">雨量觀測</a></li>
                         <li><a href="none.html">即時閃電</a></li>
                         <li><a href="rain.html">雷達迴波</a></li>
                         <li><a href="https://www.cwb.gov.tw/V8/C/W/OBS_Radar_rain.html">降雨雷達</a></li>
+                    </ul>
+                </li>
+                <li><a href="javascript:void(0);" onclick="toggleSubcategories('rain-reflectivity')">降雨資訊</a>
+                    <ul class="subcategories rain-reflectivity-subcategories">
+                        <li><a href="mmr.html">降雨預報</a></li>
+                        <li><a href="mm.html">累積雨量</a></li>                       
+                    </ul>
+                </li>
+                <li><a href="javascript:void(0);" onclick="toggleSubcategories('wind-reflectivity')">風力觀測</a>
+                    <ul class="subcategories wind-reflectivity-subcategories">
+                        <li><a href="wind.html">風力觀測</a></li>                     
+                    </ul>
+                </li>
+                <li><a href="javascript:void(0);" onclick="toggleSubcategories('weather-reflectivity')">天氣圖資</a>
+                    <ul class="subcategories weather-reflectivity-subcategories">
+                        <li><a href="weather.html">最新天氣圖</a></li>  
+                        <li><a href="fweather.html">一週天氣圖</a></li>                   
                     </ul>
                 </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('track-ensembles')">路徑系集</a>
@@ -188,33 +213,30 @@
         </nav>
     </header>
     <main>
-    <section class="section">
-        <h1>東亞地區(可見光)</h1>
-        <div id="yes-image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div>
-    </section>
-
-    <section class="section">
-        <h1>東亞地區(彩色)</h1>
-        <div id="color-color-image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div>
-    </section>
-
-    <section class="section">
-        <h1>東亞地區(色調強化)</h1>
-        <div id="enhanced-color-image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div>
-    </section>
-
-    <section class="section">
-        <h1>東亞地區(真實色)</h1>
-        <div id="image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div>
-    </section>
+        <section class="section special-section">
+            <span>
+            <h3>東亞地區(可見光)</h3>
+            <div id="yes-image-container">
+                <!-- 這裡將插入動態生成的圖片 -->
+            </div></span>
+            <span>
+            <h3>東亞地區(彩色)</h3>
+            <div id="color-color-image-container">
+                <!-- 這裡將插入動態生成的圖片 -->
+            </div></span>
+    
+            <span>
+                <h3>東亞地區(色調強化)</h3>
+                <div id="enhanced-color-image-container">
+                    <!-- 這裡將插入動態生成的圖片 -->
+                </div></span>
+    
+            <span>
+                <h3>東亞地區(真實色)</h3>
+                <div id="image-container">
+                    <!-- 這裡將插入動態生成的圖片 -->
+                </div></span>
+        </section>
 
     <div class="footer">
         <p>Copyright © 2023 颱風氣象預報中心. All rights reserved. | V4.1.20230815</p>

@@ -3,12 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <div id="fb-root"></div>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/zh_TW/sdk.js#xfbml=1&version=v17.0" nonce="92lOZ46u"></script>
+
     <style>
         nav ul {
             list-style: none;
             display: flex;
             justify-content: center;
         }
+        .fb-page{ text-align: center;}
 
         nav li {
             margin: 0 15px;
@@ -103,49 +107,25 @@
           background-color: #ffffff;
           color: #fff;
         }
-
-        #color-color-image-container,
-        #yes-image-container,
-        #enhanced-color-image-container,
-        #image-container {
-    text-align: center;
-}
- 
-        #color-color-image-container img,
-        #yes-image-container img,
-        #image-container img,
-        #enhanced-color-image-container img {
-            max-width: 100%; /* 設定最大寬度為父容器寬度 */
-            max-height: 500px; /* 設定最大高度，你可以根據需要調整 */
-        }
-
-        .special-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .special-section > span {
-        flex: 1;
-    }
+        
     </style>
-    <title>颱風氣象整合網頁</title>
-    
+    <title>颱風氣象預報中心</title>
+    <script>
+         function toggleSubcategories(category) {
+            var subcategoryList = document.querySelector('.' + category + '-subcategories');
+            var otherSubcategoryLists = document.querySelectorAll('.subcategories.show');
+            
+            otherSubcategoryLists.forEach(function(list) {
+                if (list !== subcategoryList) {
+                    list.classList.remove('show');
+                }
+            });
+            
+            subcategoryList.classList.toggle('show');
+        }
+    </script>
 </head>
 <body>
-    <script>
-        function toggleSubcategories(category) {
-            var subcategoryList = document.querySelector('.' + category + '-subcategories');
-    var otherSubcategoryLists = document.querySelectorAll('.subcategories.show');
-    
-    otherSubcategoryLists.forEach(function(list) {
-        if (list !== subcategoryList) {
-            list.classList.remove('show');
-        }
-    });    
-    subcategoryList.classList.toggle('show');
-}       
-    </script>   
     <header>
         <nav>
             <ul>
@@ -214,83 +194,141 @@
         </nav>
     </header>
     <main>
-    <section class="section special-section">
-        <span>
-        <h3>台灣地區(可見光)</h3>
-        <div id="yes-image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div></span>
-        <span>
-        <h3>台灣地區(彩色)</h3>
-        <div id="color-color-image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div></span>
+        
 
-        <span>
-            <h3>台灣地區(色調強化)</h3>
-            <div id="enhanced-color-image-container">
-                <!-- 這裡將插入動態生成的圖片 -->
-            </div></span>
+        <section class="section">
+            <h3>今日天氣圖</h3>  
+               
+        </section> 
+        
+        <section class="section">
+            <h3>後一日天氣圖</h3>  
+               
+        </section> 
 
-        <span>
-            <h3>台灣地區(真實色)</h3>
-            <div id="image-container">
-                <!-- 這裡將插入動態生成的圖片 -->
-            </div></span>
-    </section>
+        <section class="section">
+            <h3>後二日天氣圖</h3>  
+               
+        </section>
 
-   
-
-    <div class="footer">
-        <p>Copyright © 2023 颱風氣象預報中心. All rights reserved. | V4.1.20230815</p>
-    </div>
-</main>
-
-</body>
-<script>
-    
-
-        // 這段程式碼用於動態生成圖片URL並插入圖片
-        function insertSatelliteImage(category, containerId) {
-            var currentDate = new Date();
-            var imageDate = new Date(currentDate - 13 * 60 * 1000); // 15分鐘前的時間
-            var year = imageDate.getFullYear();
-            var month = (imageDate.getMonth() + 1).toString().padStart(2, '0');
-            var day = imageDate.getDate().toString().padStart(2, '0');
-            var hours = imageDate.getHours().toString().padStart(2, '0');
-            var currentMinutes = Math.floor(imageDate.getMinutes() / 10) * 10;
-            
-            // 調整分鐘部分，使其為00、10、20、30、40或50
-            var minutes = currentMinutes >= 50 ? "50" : currentMinutes.toString().padStart(2, '0');
-            
-            var imageUrl = "";
-            if (category === "true-color") {
-                imageUrl = `https://www.cwb.gov.tw/Data/satellite/TWI_VIS_TRGB_1375/TWI_VIS_TRGB_1375-${year}-${month}-${day}-${hours}-${minutes}.jpg`;
-            } else if (category === "enhanced-color") {
-                imageUrl = `https://www.cwb.gov.tw/Data/satellite/TWI_IR1_MB_800/TWI_IR1_MB_800-${year}-${month}-${day}-${hours}-${minutes}.jpg`;
-            } else if (category === "color-color") {
-                imageUrl = `https://www.cwb.gov.tw/Data/satellite/TWI_IR1_CR_800/TWI_IR1_CR_800-${year}-${month}-${day}-${hours}-${minutes}.jpg`;
-            } else if (category === "yes") {
-                imageUrl = `https://www.cwb.gov.tw/Data/satellite/TWI_VIS_Gray_1350/TWI_VIS_Gray_1350-${year}-${month}-${day}-${hours}-${minutes}.jpg`;
-            }
+        <section class="section">
+            <h3>後三日天氣圖</h3>  
+               
+        </section>
 
 
-            var imageContainer = document.getElementById(containerId);
-            var imageElement = document.createElement("img");
-            imageElement.src = imageUrl;
-            imageElement.alt = `更新中(${category === "true-color" ? "更新中" : "真實色"})`;
-            imageContainer.appendChild(imageElement);
-        }
-    </script>
+
+        <section class="section">
+            <h3>後四日天氣圖</h3>  
+               
+        </section>
+
+        <section class="section">
+            <h3>後五日天氣圖</h3>  
+               
+        </section>
+
+        <section class="section">
+            <h3>後六日天氣圖</h3>  
+               
+        </section>
+
+        <section class="section">
+            <h3>後七日天氣圖</h3>  
+               
+        </section>
+
+
+        
+
+
+
+        <div class="footer">
+            <p>Copyright © 2023 颱風氣象預報中心. All rights reserved. | V4.1.20230815</p>
+        </div>
+    </main>
+ 
     <script>
-        // 在頁面載入後，調用insertSatelliteImage函數
-        window.onload = function() {
-            insertSatelliteImage("enhanced-color", "enhanced-color-image-container");
-            insertSatelliteImage("true-color", "image-container");
-            insertSatelliteImage("color-color", "color-color-image-container");
-            insertSatelliteImage("yes", "yes-image-container");
-        };
+   window.onload = function() {
+    var currentUTC = new Date();
+    currentUTC.setUTCHours(currentUTC.getUTCHours() - 16.5);
+
+    var year = currentUTC.getUTCFullYear();
+    var month = (currentUTC.getUTCMonth() + 1).toString().padStart(2, '0');
+    var day = currentUTC.getUTCDate().toString().padStart(2, '0');
+
+    var formattedDate = year + '-' + month + day;
+    var formattedTime = "1200"; // 固定時間為 1200
+    
+    var imageUrlone = "https://www.cwb.gov.tw/Data/fcst_img/" + formattedDate +  "-" + formattedTime + "_A011HD_small.png";
+    var imageUrltwo = "https://www.cwb.gov.tw/Data/fcst_img/" + formattedDate +  "-" + formattedTime + "_A012HD_small.png";
+    var imageUrlthree = "https://www.cwb.gov.tw/Data/fcst_img/" + formattedDate +  "-" + formattedTime + "_A013HD_small.png";
+    var imageUrlfour = "https://www.cwb.gov.tw/Data/fcst_img/" + formattedDate +  "-" + formattedTime + "_A014HD_small.png";
+    var imageUrlfive = "https://www.cwb.gov.tw/Data/fcst_img/" + formattedDate +  "-" + formattedTime + "_A015HD_small.png";
+    var imageUrlsix = "https://www.cwb.gov.tw/Data/fcst_img/" + formattedDate +  "-" + formattedTime + "_A016HD_small.png";
+    var imageUrlseven = "https://www.cwb.gov.tw/Data/fcst_img/" + formattedDate +  "-" + formattedTime + "_A017HD_small.png";
+    var imageUrleight = "https://www.cwb.gov.tw/Data/fcst_img/" + formattedDate +  "-" + formattedTime + "_A018HD_small.png";
+
+        
+
+        var oneSection = document.querySelector(".section:nth-child(1)"); // 選擇第一個 section
+        var twoSection = document.querySelector(".section:nth-child(2)"); // 選擇第二個 section
+        var threeSection = document.querySelector(".section:nth-child(3)"); // 選擇第3個 section
+        var fourSection = document.querySelector(".section:nth-child(4)"); // 選擇第4個 section
+        var fiveSection = document.querySelector(".section:nth-child(5)"); // 選擇第5個 section
+        var sixSection = document.querySelector(".section:nth-child(6)"); // 選擇第6個 section
+        var sevenSection = document.querySelector(".section:nth-child(7)"); // 選擇第7個 section
+        var eightSection = document.querySelector(".section:nth-child(8)"); // 選擇第8個 section
+    
+var oneSectionImg = document.createElement("img");
+oneSectionImg.src = imageUrlone; // 使用 imageUrlone
+oneSectionImg.style.width = "30%";
+oneSectionImg.alt = "今日天氣圖";
+oneSection.appendChild(oneSectionImg);
+
+var twoSectionImg = document.createElement("img");
+twoSectionImg.src = imageUrltwo; // 使用 imageUrltwo
+twoSectionImg.style.width = "30%";
+twoSectionImg.alt = "後一日天氣圖";
+twoSection.appendChild(twoSectionImg);
+
+var threeSectionImg = document.createElement("img");
+threeSectionImg.src = imageUrltwo; // 使用 imageUrltwo
+threeSectionImg.style.width = "30%";
+threeSectionImg.alt = "後一日天氣圖";
+threeSection.appendChild(threeSectionImg);
+
+var fourSectionImg = document.createElement("img");
+fourSectionImg.src = imageUrltwo; // 使用 imageUrltwo
+fourSectionImg.style.width = "30%";
+fourSectionImg.alt = "後一日天氣圖";
+fourSection.appendChild(fourSectionImg);
+
+var fiveSectionImg = document.createElement("img");
+fiveSectionImg.src = imageUrltwo; // 使用 imageUrltwo
+fiveSectionImg.style.width = "30%";
+fiveSectionImg.alt = "後一日天氣圖";
+fiveSection.appendChild(fiveSectionImg);
+
+var sixSectionImg = document.createElement("img");
+sixSectionImg.src = imageUrltwo; // 使用 imageUrltwo
+sixSectionImg.style.width = "30%";
+sixSectionImg.alt = "後一日天氣圖";
+sixSection.appendChild(sixSectionImg);
+
+var sevenSectionImg = document.createElement("img");
+sevenSectionImg.src = imageUrltwo; // 使用 imageUrltwo
+sevenSectionImg.style.width = "30%";
+sevenSectionImg.alt = "後一日天氣圖";
+sevenSection.appendChild(sevenSectionImg);
+
+var eightSectionImg = document.createElement("img");
+eightSectionImg.src = imageUrltwo; // 使用 imageUrltwo
+eightSectionImg.style.width = "30%";
+eightSectionImg.alt = "後一日天氣圖";
+eightSection.appendChild(eightSectionImg);
+
+    };
     </script>
-    
-    
+</body>
 </html>

@@ -3,12 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <div id="fb-root"></div>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/zh_TW/sdk.js#xfbml=1&version=v17.0" nonce="92lOZ46u"></script>
+
     <style>
         nav ul {
             list-style: none;
             display: flex;
             justify-content: center;
         }
+        .fb-page{ text-align: center;}
 
         nav li {
             margin: 0 15px;
@@ -106,17 +110,21 @@
 
         #color-color-image-container,
         #yes-image-container,
+        #five-image-container,
+        #six-image-container,
         #enhanced-color-image-container,
         #image-container {
-    text-align: center;
+    text-align: left;
 }
  
         #color-color-image-container img,
         #yes-image-container img,
+        #five-image-container img,
+        #six-image-container img,
         #image-container img,
         #enhanced-color-image-container img {
-            max-width: 100%; /* 設定最大寬度為父容器寬度 */
-            max-height: 500px; /* 設定最大高度，你可以根據需要調整 */
+            max-width: 70%; /* 設定最大寬度為父容器寬度 */
+            max-height: 350px; /* 設定最大高度，你可以根據需要調整 */
         }
 
         .special-section {
@@ -129,23 +137,23 @@
         flex: 1;
     }
     </style>
-    <title>颱風氣象整合網頁</title>
-    
+    <title>颱風氣象預報中心</title>
+    <script>
+         function toggleSubcategories(category) {
+            var subcategoryList = document.querySelector('.' + category + '-subcategories');
+            var otherSubcategoryLists = document.querySelectorAll('.subcategories.show');
+            
+            otherSubcategoryLists.forEach(function(list) {
+                if (list !== subcategoryList) {
+                    list.classList.remove('show');
+                }
+            });
+            
+            subcategoryList.classList.toggle('show');
+        }
+    </script>
 </head>
 <body>
-    <script>
-        function toggleSubcategories(category) {
-            var subcategoryList = document.querySelector('.' + category + '-subcategories');
-    var otherSubcategoryLists = document.querySelectorAll('.subcategories.show');
-    
-    otherSubcategoryLists.forEach(function(list) {
-        if (list !== subcategoryList) {
-            list.classList.remove('show');
-        }
-    });    
-    subcategoryList.classList.toggle('show');
-}       
-    </script>   
     <header>
         <nav>
             <ul>
@@ -214,46 +222,92 @@
         </nav>
     </header>
     <main>
-    <section class="section special-section">
-        <span>
-        <h3>台灣地區(可見光)</h3>
-        <div id="yes-image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div></span>
-        <span>
-        <h3>台灣地區(彩色)</h3>
-        <div id="color-color-image-container">
-            <!-- 這裡將插入動態生成的圖片 -->
-        </div></span>
+        <section class="section special-section">
+            <span> <h3 >未來48小時降雨預報</h3>
+            
+            <img src="https://www.cwb.gov.tw/Data/fcst_img/QPF_ChFcstPrecip_12_12.png" 
+                 alt="0-12小時降雨預報" 
+                 width="230px" 
+                 height="285px"
+            ></span>
+            <span> <h3 ></h3>
+            <img src="https://www.cwb.gov.tw/Data/fcst_img/QPF_ChFcstPrecip_12_24.png" 
+                 alt="12-24小時降雨預報" 
+                 width="220px" 
+                 height="277px"
+            >
+            </span>
 
+            <span> <h3 ></h3>
+            <img src="https://www.cwb.gov.tw/Data/fcst_img/QPF_ChFcstPrecip_12_36.png" 
+                 alt="24-36小時降雨預報" 
+                 width="220px" 
+                 height="277px"
+            ></span>
+
+            <span> <h3 ></h3>
+            <img src="https://www.cwb.gov.tw/Data/fcst_img/QPF_ChFcstPrecip_12_48.png" 
+                 alt="36-48小時降雨預報" 
+                 width="220px" 
+                 height="277px"
+            ></span>
+            
+        </section>
+
+        <section class="section">
+            <h3>未來24小時累積降雨預報(中央氣象局)</h3>
+            <div id="yes-image-container">
+                <!-- 這裡將插入動態生成的圖片 -->
+            </div>
+        </section>
+    
+        <section class="section special-section">
+            <span>
+            <h4>未來1小時累積降雨預報</h4>
+            <div id="color-color-image-container">
+                <!-- 這裡將插入動態生成的圖片 -->
+            </div>
+        </span>
         <span>
-            <h3>台灣地區(色調強化)</h3>
+            <h4>未來3小時累積降雨預報</h4>
             <div id="enhanced-color-image-container">
                 <!-- 這裡將插入動態生成的圖片 -->
-            </div></span>
-
+            </div>
+        </span>
         <span>
-            <h3>台灣地區(真實色)</h3>
+            <h4>未來6小時累積降雨預報</h4>
             <div id="image-container">
                 <!-- 這裡將插入動態生成的圖片 -->
-            </div></span>
-    </section>
+            </div>
+        </span>
+        <span>
+            <h4>未來12小時累積降雨預報</h4>
+            <div id="five-image-container">
+                <!-- 這裡將插入動態生成的圖片 -->
+            </div>
+        </span>
+        <span>
+            <h4>未來24小時累積降雨預報</h4>
+            <div id="six-image-container">
+                <!-- 這裡將插入動態生成的圖片 -->
+            </div>
+        </span>
+        </section>
+    
+        
 
-   
+            <div class="footer">
+            <p>Copyright © 2023 颱風氣象預報中心. All rights reserved. | V4.1.20230815</p>
+        </div>
+    </main>
 
-    <div class="footer">
-        <p>Copyright © 2023 颱風氣象預報中心. All rights reserved. | V4.1.20230815</p>
-    </div>
-</main>
-
-</body>
-<script>
+    <script>
     
 
         // 這段程式碼用於動態生成圖片URL並插入圖片
         function insertSatelliteImage(category, containerId) {
             var currentDate = new Date();
-            var imageDate = new Date(currentDate - 13 * 60 * 1000); // 15分鐘前的時間
+            var imageDate = new Date(currentDate - 22 * 60 * 1000); // 15分鐘前的時間
             var year = imageDate.getFullYear();
             var month = (imageDate.getMonth() + 1).toString().padStart(2, '0');
             var day = imageDate.getDate().toString().padStart(2, '0');
@@ -265,13 +319,17 @@
             
             var imageUrl = "";
             if (category === "true-color") {
-                imageUrl = `https://www.cwb.gov.tw/Data/satellite/TWI_VIS_TRGB_1375/TWI_VIS_TRGB_1375-${year}-${month}-${day}-${hours}-${minutes}.jpg`;
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_06_${year}${month}${day}${hours}${minutes}.png`;
             } else if (category === "enhanced-color") {
-                imageUrl = `https://www.cwb.gov.tw/Data/satellite/TWI_IR1_MB_800/TWI_IR1_MB_800-${year}-${month}-${day}-${hours}-${minutes}.jpg`;
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_03_${year}${month}${day}${hours}${minutes}.png`;
             } else if (category === "color-color") {
-                imageUrl = `https://www.cwb.gov.tw/Data/satellite/TWI_IR1_CR_800/TWI_IR1_CR_800-${year}-${month}-${day}-${hours}-${minutes}.jpg`;
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_01_${year}${month}${day}${hours}${minutes}.png`;
             } else if (category === "yes") {
-                imageUrl = `https://www.cwb.gov.tw/Data/satellite/TWI_VIS_Gray_1350/TWI_VIS_Gray_1350-${year}-${month}-${day}-${hours}-${minutes}.jpg`;
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/raingauge_24_${year}${month}${day}${hours}${minutes}.png`;
+            } else if (category === "five") {
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_12_${year}${month}${day}${hours}${minutes}.png`;
+            } else if (category === "six") {
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_24_${year}${month}${day}${hours}${minutes}.png`;
             }
 
 
@@ -289,8 +347,9 @@
             insertSatelliteImage("true-color", "image-container");
             insertSatelliteImage("color-color", "color-color-image-container");
             insertSatelliteImage("yes", "yes-image-container");
+            insertSatelliteImage("five", "five-image-container");
+            insertSatelliteImage("six", "six-image-container");
         };
     </script>
-    
-    
+</body>
 </html>
