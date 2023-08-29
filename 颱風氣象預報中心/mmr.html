@@ -332,7 +332,7 @@
             var yearAlt = imageDateAlt.getFullYear();
             var monthAlt = (imageDateAlt.getMonth() + 1).toString().padStart(2, '0');
             var dayAlt = imageDateAlt.getDate().toString().padStart(2, '0');
-            var hoursAlt = imageDateAlt.getHours();
+            var hoursAlt = imageDateAlt.getHours().toString().padStart(2, '0');
             var currentMinutesAlt = Math.floor(imageDateAlt.getMinutes() / 10) * 10;
             
 
