@@ -164,7 +164,8 @@
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('ty-reflectivity')">颱風警報</a>
                     <ul class="subcategories ty-reflectivity-subcategories">
                         <li><a href="ty.html">颱風警報</a></li>
-                        <li><a href="tywind.html">風雨預報</a></li>
+                        <li><a href="tywind.html">風力預報</a></li>
+                        <li><a href="tyrain.html">雨量預報</a></li>
                     </ul>
                 </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('satellite-images')">衛星雲圖</a>
@@ -195,7 +196,12 @@
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('weather-reflectivity')">天氣圖資</a>
                     <ul class="subcategories weather-reflectivity-subcategories">
                         <li><a href="weather.html">最新天氣圖</a></li>  
-                        <li><a href="fweather.html">一週天氣圖</a></li>                   
+                        <li><a href="fweather.html">一週天氣圖</a></li>
+                        <li><a href="tropic1.html">駛流場圖</a></li>
+                        <li><a href="tropic2.html">相對窩度</a></li> 
+                        <li><a href="tropic3.html">垂直風切</a></li> 
+                        <li><a href="tropic4.html">氣層風場</a></li>
+                        <li><a href="tropic5.html">高層福散</a></li>                    
                     </ul>
                 </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('track-ensembles')">路徑系集</a>
@@ -224,12 +230,18 @@
 
 
         <section class="section">
-            <h1 >最新天氣圖</h1>
+            <span>  <h3 >最新天氣圖</h3>
+                <div id="image-container">
+                    <!-- 這裡將插入動態生成的圖片 -->
+                </div></span>
                  
         </section>
 
         <section class="section">
-            <h1>最新地面天氣圖</h1>       
+            <span><h3 >最新地面天氣圖</h3>
+                <div id="enhanced-color-image-container">
+                    <!-- 這裡將插入動態生成的圖片 -->
+                </div></span>       
         </section>
 
         <div class="footer">
@@ -237,61 +249,84 @@
           </div>
     </main>
 </body>
+
 <script>
-window.onload = function() {
-    var currentUTC = new Date();
-    currentUTC.setUTCHours(currentUTC.getUTCHours() - 2 );
+    currentUTC.setUTCHours(currentUTC.getUTCHours() - 0 );
+    function insertSatelliteImage(category, containerId) {
+            var currentDate = new Date();
+            var imageDate = new Date(currentDate - 630 * 60 * 1000); // 14 minutes ago
+            var year = imageDate.getFullYear();
+            var year1 = year % 100; // Get the last two digits of the year
+            var month = (imageDate.getMonth() + 1).toString().padStart(2, '0');
+            var day = imageDate.getDate().toString().padStart(2, '0');
+            var hours = imageDate.getHours();
+            var currentDateAlt = new Date();
 
-    var formattedDate = currentUTC.getFullYear() +
-                        "-" +
-                        (currentUTC.getMonth() + 1).toString().padStart(2, '0') +
-                        currentUTC.getDate().toString().padStart(2, '0');
-    var currentUTCHours = currentUTC.getUTCHours();
+            var imageDateAlt = new Date(currentDateAlt - 900 * 60 * 1000); // 30 minutes ago
+            var yearAlt = imageDateAlt.getFullYear();
+            var year1Alt = yearAlt % 100; // Get the last two digits of the year
+            var monthAlt = (imageDateAlt.getMonth() + 1).toString().padStart(2, '0');
+            var dayAlt = imageDateAlt.getDate().toString().padStart(2, '0');
+            var hoursAlt = imageDateAlt.getHours();
 
-    var formattedTime;
-    switch (true) {
-        case currentUTCHours < 6:
-            formattedTime = "0000";
-            break;
-        case currentUTCHours < 12:
-            formattedTime = "0600";
-            break;
-        case currentUTCHours < 18:
-            formattedTime = "1200";
-            break;
-        default:
-            formattedTime = "1800";
-            break;
-    }
-    
-    // 使用多個獨立的三元運算符來處理時間選擇
-    var formattedTime = currentUTCHours < 6 ? "0000" :
-                        currentUTCHours < 12 ? "0600" :
-                        currentUTCHours < 18 ? "1200" : "1800";
+            // Adjust hours to be 00, 06, 12, or 18
+            if (hours < 6) {
+                hours = 0;
+            } else if (hours < 12) {
+                hours = 6;
+            } else if (hours < 18) {
+                hours = 12;
+            } else {
+                hours = 18;
+            }
+            // Adjust hours to be 00, 06, 12, or 18
+            if (hoursAlt < 6) {
+                hoursAlt = 0;
+            } else if (hoursAlt < 12) {
+                hoursAlt = 6;
+            } else if (hoursAlt < 18) {
+                hoursAlt = 12;
+            } else {
+                hoursAlt = 18;
+            }
 
-    var imageUrlPath = "https://www.cwb.gov.tw/Data/fcst_img/FI04.png";
-    var imageUrlProbability = "https://www.cwb.gov.tw/Data/fcst_img/" + formattedDate + "-" + formattedTime + "_SFCcombo.jpg";
-    
-    var typhoonPathSection = document.querySelector(".section:nth-child(1)"); // 選擇第一個 section
-    var stormProbabilitySection = document.querySelector(".section:nth-child(2)"); // 選擇第二個 section
+            hoursAlt = hoursAlt.toString().padStart(2, '0');
+            var currentMinutesAlt = Math.floor(imageDateAlt.getMinutes() / 10) * 10;
 
-    var typhoonPathImg = document.createElement("img");
-    typhoonPathImg.src = imageUrlPath;
-    typhoonPathImg.style.width = "80%";
-    typhoonPathImg.alt = "更新中";
-    typhoonPathSection.appendChild(typhoonPathImg);
+            hours = hours.toString().padStart(2, '0');
+            var currentMinutes = Math.floor(imageDate.getMinutes() / 10) * 10;
 
-    var stormProbabilityImg = document.createElement("img");
-    stormProbabilityImg.src = imageUrlProbability;
-    stormProbabilityImg.style.width = "80%";
-    stormProbabilityImg.alt = "更新中";
-    stormProbabilitySection.appendChild(stormProbabilityImg);
-};
+            var imageUrl = "";
+            if (category === "true-color") {
+                imageUrl = `https://www.cwb.gov.tw/Data/fcst_img/FI04.png`;
+            } else if (category === "enhanced-color") {
+                imageUrl = `https://www.cwb.gov.tw/Data/fcst_img/${year}-${month}${day}-${hours}00_SFCcombo.jpg`;
+            } else if (category === "color-color") {
+                imageUrl = `https://npd.${year}${month}${day}${hours}_PSTRK.gif`;
+            } else if (category === "yes") {
+                imageUrl = `https://n${year}${month}${day}${hours}_PSTRK.gif`;
+            } else if (category === "five") {
+                imageUrl = `https://${year1Alt}${monthAlt}${dayAlt}${hoursAlt}.jpg`;
+            }
 
+            var imageContainer = document.getElementById(containerId);
+            var imageElement = document.createElement("img");
+            imageElement.src = imageUrl;
+            imageElement.alt = `更新中(${category === "true-color" ? "更新中" : "更新中"})`;
+            imageContainer.appendChild(imageElement);
+        }
 
         
-       
+    </script>
+    <script>
+        window.onload = function() {
+            insertSatelliteImage("enhanced-color", "enhanced-color-image-container");
+            insertSatelliteImage("true-color", "image-container");
+            insertSatelliteImage("color-color", "color-color-image-container");
+            insertSatelliteImage("yes", "yes-image-container");
+            insertSatelliteImage("five", "five-image-container");
+        };
+
     
-</script>
-</script>
+    </script>
 </html>

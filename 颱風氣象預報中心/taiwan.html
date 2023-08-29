@@ -165,7 +165,8 @@
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('ty-reflectivity')">颱風警報</a>
                     <ul class="subcategories ty-reflectivity-subcategories">
                         <li><a href="ty.html">颱風警報</a></li>
-                        <li><a href="tywind.html">風雨預報</a></li>
+                        <li><a href="tywind.html">風力預報</a></li>
+                        <li><a href="tyrain.html">雨量預報</a></li>
                     </ul>
                 </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('satellite-images')">衛星雲圖</a>
@@ -196,7 +197,12 @@
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('weather-reflectivity')">天氣圖資</a>
                     <ul class="subcategories weather-reflectivity-subcategories">
                         <li><a href="weather.html">最新天氣圖</a></li>  
-                        <li><a href="fweather.html">一週天氣圖</a></li>                   
+                        <li><a href="fweather.html">一週天氣圖</a></li>
+                        <li><a href="tropic1.html">駛流場圖</a></li>
+                        <li><a href="tropic2.html">相對窩度</a></li> 
+                        <li><a href="tropic3.html">垂直風切</a></li> 
+                        <li><a href="tropic4.html">氣層風場</a></li>
+                        <li><a href="tropic5.html">高層福散</a></li>                    
                     </ul>
                 </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('track-ensembles')">路徑系集</a>
@@ -258,22 +264,30 @@
 <script>
     
 
-        // 這段程式碼用於動態生成圖片URL並插入圖片
-        function insertSatelliteImage(category, containerId) {
-            var currentDate = new Date();
-            var imageDate = new Date(currentDate - 13 * 60 * 1000); // 15分鐘前的時間
-            var year = imageDate.getFullYear();
-            var month = (imageDate.getMonth() + 1).toString().padStart(2, '0');
-            var day = imageDate.getDate().toString().padStart(2, '0');
-            var hours = imageDate.getHours().toString().padStart(2, '0');
-            var currentMinutes = Math.floor(imageDate.getMinutes() / 10) * 10;
-            
-            // 調整分鐘部分，使其為00、10、20、30、40或50
-            var minutes = currentMinutes >= 50 ? "50" : currentMinutes.toString().padStart(2, '0');
+              // 這段程式碼用於動態生成圖片URL並插入圖片
+    function insertSatelliteImage(category, containerId) {
+    var currentDate = new Date();
+    var imageDate = new Date(currentDate - 13 * 60 * 1000); // 15分鐘前的時間
+    var year = imageDate.getFullYear();
+    var month = (imageDate.getMonth() + 1).toString().padStart(2, '0');
+    var day = imageDate.getDate().toString().padStart(2, '0');
+    var hours = imageDate.getHours().toString().padStart(2, '0');
+    var currentMinutes = Math.floor(imageDate.getMinutes() / 10) * 10;
+
+    var imageDateAlt = new Date(currentDate - 25 * 60 * 1000); // 50分鐘前的時間
+    var yearAlt = imageDateAlt.getFullYear();
+    var monthAlt = (imageDateAlt.getMonth() + 1).toString().padStart(2, '0');
+    var dayAlt = imageDateAlt.getDate().toString().padStart(2, '0');
+    var hoursAlt = imageDateAlt.getHours().toString().padStart(2, '0');
+    var currentMinutesAlt = Math.floor(imageDateAlt.getMinutes() / 10) * 10;
+    
+    // 調整分鐘部分，使其為00、10、20、30、40或50
+    var minutes = currentMinutes >= 50 ? "50" : currentMinutes.toString().padStart(2, '0');
+    var minutesAlt = currentMinutesAlt >= 50 ? "50" : currentMinutesAlt.toString().padStart(2, '0');
             
             var imageUrl = "";
             if (category === "true-color") {
-                imageUrl = `https://www.cwb.gov.tw/Data/satellite/TWI_VIS_TRGB_1375/TWI_VIS_TRGB_1375-${year}-${month}-${day}-${hours}-${minutes}.jpg`;
+                imageUrl = `https://www.cwb.gov.tw/Data/satellite/TWI_VIS_TRGB_1375/TWI_VIS_TRGB_1375-${yearAlt}-${monthAlt}-${dayAlt}-${hoursAlt}-${minutesAlt}.jpg`;
             } else if (category === "enhanced-color") {
                 imageUrl = `https://www.cwb.gov.tw/Data/satellite/TWI_IR1_MB_800/TWI_IR1_MB_800-${year}-${month}-${day}-${hours}-${minutes}.jpg`;
             } else if (category === "color-color") {
@@ -283,22 +297,24 @@
             }
 
 
-            var imageContainer = document.getElementById(containerId);
-            var imageElement = document.createElement("img");
-            imageElement.src = imageUrl;
-            imageElement.alt = `更新中(${category === "true-color" ? "更新中" : "更新中"})`;
-            imageContainer.appendChild(imageElement);
-        }
+            // 以下部分與之前相同
+    var imageContainer = document.getElementById(containerId);
+    var imageElement = document.createElement("img");
+    imageElement.src = imageUrl;
+    imageElement.alt = `更新中(${category === "true-color" ? "更新中" : category})`;
+    imageContainer.appendChild(imageElement);
+}
+
     </script>
     <script>
         // 在頁面載入後，調用insertSatelliteImage函數
         window.onload = function() {
+            // 在頁面載入後，調用 insertSatelliteImage 函數
             insertSatelliteImage("enhanced-color", "enhanced-color-image-container");
             insertSatelliteImage("true-color", "image-container");
             insertSatelliteImage("color-color", "color-color-image-container");
             insertSatelliteImage("yes", "yes-image-container");
         };
     </script>
-    
     
 </html>

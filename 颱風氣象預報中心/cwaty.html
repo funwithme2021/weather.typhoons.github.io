@@ -175,7 +175,8 @@
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('ty-reflectivity')">颱風警報</a>
                     <ul class="subcategories ty-reflectivity-subcategories">
                         <li><a href="ty.html">颱風警報</a></li>
-                        <li><a href="tywind.html">風雨預報</a></li>
+                        <li><a href="tywind.html">風力預報</a></li>
+                        <li><a href="tyrain.html">雨量預報</a></li>
                     </ul>
                 </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('satellite-images')">衛星雲圖</a>
@@ -206,7 +207,12 @@
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('weather-reflectivity')">天氣圖資</a>
                     <ul class="subcategories weather-reflectivity-subcategories">
                         <li><a href="weather.html">最新天氣圖</a></li>  
-                        <li><a href="fweather.html">一週天氣圖</a></li>                   
+                        <li><a href="fweather.html">一週天氣圖</a></li>
+                        <li><a href="tropic1.html">駛流場圖</a></li>
+                        <li><a href="tropic2.html">相對窩度</a></li> 
+                        <li><a href="tropic3.html">垂直風切</a></li> 
+                        <li><a href="tropic4.html">氣層風場</a></li>
+                        <li><a href="tropic5.html">高層福散</a></li>                    
                     </ul>
                 </li>
                 <li><a href="javascript:void(0);" onclick="toggleSubcategories('track-ensembles')">路徑系集</a>
@@ -274,7 +280,7 @@
     currentUTC.setUTCHours(currentUTC.getUTCHours() - 0 );
     function insertSatelliteImage(category, containerId) {
             var currentDate = new Date();
-            var imageDate = new Date(currentDate - 900 * 60 * 1000); // 14 minutes ago
+            var imageDate = new Date(currentDate - 850 * 60 * 1000); // 14 minutes ago
             var year = imageDate.getFullYear();
             var year1 = year % 100; // Get the last two digits of the year
             var month = (imageDate.getMonth() + 1).toString().padStart(2, '0');
@@ -282,7 +288,7 @@
             var hours = imageDate.getHours();
             var currentDateAlt = new Date();
 
-            var imageDateAlt = new Date(currentDateAlt - 900 * 60 * 1000); // 30 minutes ago
+            var imageDateAlt = new Date(currentDateAlt - 970 * 60 * 1000); // 30 minutes ago
             var yearAlt = imageDateAlt.getFullYear();
             var year1Alt = yearAlt % 100; // Get the last two digits of the year
             var monthAlt = (imageDateAlt.getMonth() + 1).toString().padStart(2, '0');
