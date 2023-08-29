@@ -112,6 +112,10 @@
         #yes-image-container,
         #five-image-container,
         #six-image-container,
+        #seven-image-container,
+        #eight-image-container,
+        #nine-image-container,
+        #ten-image-container,
         #enhanced-color-image-container,
         #image-container {
     text-align: left;
@@ -121,6 +125,10 @@
         #yes-image-container img,
         #five-image-container img,
         #six-image-container img,
+        #seven-image-container img,
+        #eight-image-container img,
+        #nine-image-container img,
+        #ten-image-container img,
         #image-container img,
         #enhanced-color-image-container img {
             max-width: 70%; /* 設定最大寬度為父容器寬度 */
@@ -268,11 +276,37 @@
             
         </section>
 
-        <section class="section">
-            <h4>未來24小時累積降雨預報(中央氣象局)</h4>
+        <section class="section special-section">
+            <span>
+                <h4>未來1小時累積降雨預報(氣象局)</h4>
+                <div id="seven-image-container">
+                    <!-- 這裡將插入動態生成的圖片 -->
+                </div>
+            </span>
+            <span>
+                <h4>未來3小時累積降雨預報(氣象局)</h4>
+                <div id="eight-image-container">
+                    <!-- 這裡將插入動態生成的圖片 -->
+                </div>
+            </span>
+            <span>
+                <h4>未來6小時累積降雨預報(氣象局)</h4>
+                <div id="nine-image-container">
+                    <!-- 這裡將插入動態生成的圖片 -->
+                </div>
+            </span>
+            <span>
+                <h4>未來12小時累積降雨預報(氣象局)</h4>
+                <div id="ten-image-container">
+                    <!-- 這裡將插入動態生成的圖片 -->
+                </div>
+            </span>
+            <span>
+            <h4>未來24小時累積降雨預報(氣象局)</h4>
             <div id="yes-image-container">
                 <!-- 這裡將插入動態生成的圖片 -->
             </div>
+            </span>
         </section>
     
         <section class="section special-section">
@@ -355,8 +389,15 @@
                 imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_12_${year}${month}${day}${hours}${minutes}.png`;
             } else if (category === "six") {
                 imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/kridmap_24_${year}${month}${day}${hours}${minutes}.png`;
+            } else if (category === "seven") {
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/raingauge_01_${yearAlt}${monthAlt}${dayAlt}${hoursAlt}${minutesAlt}.png`;
+            } else if (category === "eight") {
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/raingauge_03_${yearAlt}${monthAlt}${dayAlt}${hoursAlt}${minutesAlt}.png`;
+            } else if (category === "nine") {
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/raingauge_06_${yearAlt}${monthAlt}${dayAlt}${hoursAlt}${minutesAlt}.png`;
+            } else if (category === "ten") {
+                imageUrl = `https://watch.ncdr.nat.gov.tw/00_Wxmap/images/raingauge_12_${yearAlt}${monthAlt}${dayAlt}${hoursAlt}${minutesAlt}.png`;
             }
-
 
             var imageContainer = document.getElementById(containerId);
             var imageElement = document.createElement("img");
@@ -374,6 +415,10 @@
             insertSatelliteImage("yes", "yes-image-container");
             insertSatelliteImage("five", "five-image-container");
             insertSatelliteImage("six", "six-image-container");
+            insertSatelliteImage("seven", "seven-image-container");
+            insertSatelliteImage("eight", "eight-image-container");
+            insertSatelliteImage("nine", "nine-image-container");
+            insertSatelliteImage("ten", "ten-image-container");
         };
     </script>
 </body>
