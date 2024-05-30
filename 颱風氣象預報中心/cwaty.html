@@ -331,15 +331,15 @@
 
             var imageUrl = "";
             if (category === "true-color") {
-                imageUrl = `https://npd1.cwa.gov.tw/NPD/irisme_data/grapher/gifdir/Ntrack/GFS/${yearAlt}/Track_GET_GT00_${yearAlt}${monthAlt}${dayAlt}${hoursAlt}_PSTRK.gif`;
+                imageUrl = `https://npd.cwa.gov.tw/NPD/irisme_data/grapher/gifdir/Ntrack/CWATGFS/${yearAlt}/Track_TGFS_GT00_${yearAlt}${monthAlt}${dayAlt}${hoursAlt}_PSTRK.gif`;
             } else if (category === "enhanced-color") {
-                imageUrl = `https://npd1.cwa.gov.tw/NPD/irisme_data/grapher/gifdir/Ntrack/WRFM04/${yearAlt}/Track_WRFM04_WD01T_${yearAlt}${monthAlt}${dayAlt}${hoursAlt}_PSTRK.gif`;
+                imageUrl = `https://npd.cwa.gov.tw/NPD/irisme_data/grapher/gifdir/Ntrack/WRFM04/${yearAlt}/Track_WRFM04_WD01T_${yearAlt}${monthAlt}${dayAlt}${hoursAlt}_PSTRK.gif`;
             } else if (category === "color-color") {
-                imageUrl = `https://npd1.cwa.gov.tw/NPD/irisme_data/grapher/gifdir/Ntrack/GFS/${year}/Track_GET_GT00_${year}${month}${day}${hours}_PSTRK.gif`;
+                imageUrl = `https://npd.cwa.gov.tw/NPD/irisme_data/grapher/gifdir/Ntrack/CWATGFS/${year}/Track_TGFS_GT00_${year}${month}${day}${hours}_PSTRK.gif`;
             } else if (category === "yes") {
-                imageUrl = `https://npd1.cwa.gov.tw/NPD/irisme_data/grapher/gifdir/Ntrack/WRFM04/${year}/Track_WRFM04_WD01T_${year}${month}${day}${hours}_PSTRK.gif`;
+                imageUrl = `https://npd.cwa.gov.tw/NPD/irisme_data/grapher/gifdir/Ntrack/WRFM04/${year}/Track_WRFM04_WD01T_${year}${month}${day}${hours}_PSTRK.gif`;
             } else if (category === "five") {
-                imageUrl = `https://npd1.cwa.gov.tw/NPD/irisme_data/ENSEMBLE/EN_TRACK_PROBABILITY/WEPS_TY_PROB_${year1Alt}${monthAlt}${dayAlt}${hoursAlt}.jpg`;
+                imageUrl = `https://npd.cwa.gov.tw/NPD/irisme_data/grapher/gifdir/Ntrack/WRF_WEPS/${year}/WEPS_TY_PROB_${year1Alt}${monthAlt}${dayAlt}${hoursAlt}.jpg`;
             }
 
             var imageContainer = document.getElementById(containerId);
