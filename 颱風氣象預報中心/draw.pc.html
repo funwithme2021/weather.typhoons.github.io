@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>颱風預報製圖系統</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            background-color: #444;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .typhoon-info {
+            display: flex;
+        }
+
+        .icon img {
+            width: 50px;
+            height: 50px;
+        }
+
+        .details {
+            margin-left: 20px;
+        }
+
+        .stats {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        main {
+            text-align: center;
+            padding: 20px;
+            background-color: #e0e0e0;
+        }
+
+        main canvas {
+            width: 100%;
+            height: auto;
+            margin-top: 20px;
+        }
+
+        footer {
+            background-color: #000;
+            text-align: center;
+            padding: 10px;
+        }
+
+        footer img {
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="typhoon-info">
+                <div class="icon">
+                    <img id="typhoon-icon" src="ts.png" alt="Typhoon Icon">
+                </div>
+                <div class="details">
+                    <h1 id="typhoon-name">馬力斯 MALIKSI</h1>
+                    <h2 id="typhoon-number">2402</h2>
+                </div>
+            </div>
+            <div class="stats">
+                <p>中心氣壓: <span id="pressure">998 百帕</span></p>
+                <p>七級暴風圈半徑: <span id="radius-7">100 公里</span></p>
+                <p>十級暴風圈半徑: <span id="radius-10">25 公里</span></p>
+                <p>近中心最大風速: <span id="max-wind">18 公尺/秒</span></p>
+                <p>瞬間最大陣風: <span id="max-gust">25 公尺/秒</span></p>
+                <p>未來預測路徑: <span id="forecast-speed">15 公里/時</span></p>
+            </div>
+        </header>
+        <main>
+            <input type="file" id="upload" accept="image/*">
+            <canvas id="canvas"></canvas>
+        </main>
+        <footer>
+            <img id="legend" src="ex.png" alt="Legend">
+        </footer>
+    </div>
+    <script>
+        const upload = document.getElementById('upload');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const typhoonName = document.getElementById('typhoon-name');
+        const typhoonNumber = document.getElementById('typhoon-number');
+        const pressure = document.getElementById('pressure');
+        const radius7 = document.getElementById('radius-7');
+        const radius10 = document.getElementById('radius-10');
+        const maxWind = document.getElementById('max-wind');
+        const maxGust = document.getElementById('max-gust');
+        const forecastSpeed = document.getElementById('forecast-speed');
+        const legend = document.getElementById('legend');
+
+        upload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const image = new Image();
+                image.onload = function() {
+                    const legendHeight = legend.height;
+                    const targetHeight = image.height + legendHeight;
+
+                    // 裁切上传的颱風路徑圖
+                    const aspectRatio = image.width / image.height;
+                    let newWidth = image.width;
+                    let newHeight = image.height;
+
+                    if (newHeight > canvas.height - legendHeight) {
+                        newHeight = canvas.height - legendHeight;
+                        newWidth = newHeight * aspectRatio;
+                    }
+
+                    canvas.width = newWidth;
+                    canvas.height = newHeight + legendHeight;
+
+                    // 绘制上传的图片
+                    ctx.drawImage(image, 0, 0, newWidth, newHeight);
+
+                    // 绘制颱風信息
+                    drawTyphoonInfo();
+
+                    // 绘制图例
+                    ctx.drawImage(legend, 0, newHeight, canvas.width, legendHeight);
+                }
+                image.src = e.target.result;
+            }
+            
+            reader.readAsDataURL(file);
+        });
+
+        function drawTyphoonInfo() {
+            // 绘制半透明背景
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, 150);
+
+            // 绘制文本
+            ctx.fillStyle = '#fff';
+            ctx.font = '20px Arial';
+            ctx.fillText(`颱風名稱: ${typhoonName.textContent}`, 20, 40);
+            ctx.fillText(`颱風編號: ${typhoonNumber.textContent}`, 20, 70);
+            ctx.fillText(`中心氣壓: ${pressure.textContent}`, 20, 100);
+            ctx.fillText(`七級暴風圈半徑: ${radius7.textContent}`, 20, 130);
+            ctx.fillText(`十級暴風圈半徑: ${radius10.textContent}`, 20, 160);
+            ctx.fillText(`近中心最大風速: ${maxWind.textContent}`, 20, 190);
+            ctx.fillText(`瞬間最大陣風: ${maxGust.textContent}`, 20, 220);
+            ctx.fillText(`未來預測路徑: ${forecastSpeed.textContent}`, 20, 250);
+        }
+    </script>
+</body>
+</html>
+
+
