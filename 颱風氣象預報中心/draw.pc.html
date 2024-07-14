@@ -1,178 +1,282 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>颱風預報製圖系統</title>
+    <title>課表</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
-
-        .container {
-            width: 80%;
-            margin: 0 auto;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            background-color: #444;
-            color: #fff;
-            padding: 20px;
-        }
-
-        .typhoon-info {
-            display: flex;
-        }
-
-        .icon img {
-            width: 50px;
-            height: 50px;
-        }
-
-        .details {
-            margin-left: 20px;
-        }
-
-        .stats {
+            background-color: #f0f8ff;
             display: flex;
             flex-direction: column;
-            justify-content: center;
-        }
-
-        main {
-            text-align: center;
+            align-items: center;
+            margin: 0;
             padding: 20px;
-            background-color: #e0e0e0;
         }
 
-        main canvas {
+        .timetable-container {
+            width: 90%;
+            max-width: 1200px;
+        }
+
+        .timetable {
             width: 100%;
-            height: auto;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 16px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .timetable th, .timetable td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            width: 14.28%; /* 100% divided by 7 columns */
+        }
+
+        .timetable th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .time-slot {
+            background-color: #e0e7ff;
+        }
+
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .input-container input,
+        .input-container select {
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .input-container button {
+            padding: 10px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .input-container button:hover {
+            background-color: #45a049;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .async-container {
+            width: 100%;
             margin-top: 20px;
         }
 
-        footer {
-            background-color: #000;
-            text-align: center;
+        .async-course {
             padding: 10px;
+            background-color: #d3ffd3;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        footer img {
-            width: 100%;
-            height: auto;
+        .credits {
+            font-size: 20px;
+            margin-top: 20px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="typhoon-info">
-                <div class="icon">
-                    <img id="typhoon-icon" src="ts.png" alt="Typhoon Icon">
-                </div>
-                <div class="details">
-                    <h1 id="typhoon-name">馬力斯 MALIKSI</h1>
-                    <h2 id="typhoon-number">2402</h2>
-                </div>
-            </div>
-            <div class="stats">
-                <p>中心氣壓: <span id="pressure">998 百帕</span></p>
-                <p>七級暴風圈半徑: <span id="radius-7">100 公里</span></p>
-                <p>十級暴風圈半徑: <span id="radius-10">25 公里</span></p>
-                <p>近中心最大風速: <span id="max-wind">18 公尺/秒</span></p>
-                <p>瞬間最大陣風: <span id="max-gust">25 公尺/秒</span></p>
-                <p>未來預測路徑: <span id="forecast-speed">15 公里/時</span></p>
-            </div>
-        </header>
-        <main>
-            <input type="file" id="upload" accept="image/*">
-            <canvas id="canvas"></canvas>
-        </main>
-        <footer>
-            <img id="legend" src="ex.png" alt="Legend">
-        </footer>
+    <div class="input-container">
+        <input type="text" id="courseName" placeholder="課程名稱">
+        <input type="text" id="teacherName" placeholder="教師名稱">
+        <input type="text" id="courseLocation" placeholder="上課地點">
+        <input type="number" id="courseCredits" placeholder="學分數" min="1" max="10">
+        <select id="daySelect">
+            <option value="1">星期一</option>
+            <option value="2">星期二</option>
+            <option value="3">星期三</option>
+            <option value="4">星期四</option>
+            <option value="5">星期五</option>
+        </select>
+        <div class="checkbox-group" id="timeSelect">
+            <label><input type="checkbox" value="1"> 第一節</label>
+            <label><input type="checkbox" value="2"> 第二節</label>
+            <label><input type="checkbox" value="3"> 第三節</label>
+            <label><input type="checkbox" value="4"> 第四節</label>
+            <label><input type="checkbox" value="6"> 第五節</label>
+            <label><input type="checkbox" value="7"> 第六節</label>
+            <label><input type="checkbox" value="8"> 第七節</label>
+            <label><input type="checkbox" value="9"> 第八節</label>
+            <label><input type="checkbox" value="10"> 第九節</label>
+        </div>
+        <label>
+            <input type="checkbox" id="isAsync"> 非同步課程
+        </label>
+        <button onclick="addCourse()">新增課程</button>
+    </div>
+    <div class="timetable-container">
+        <table class="timetable">
+            <thead>
+                <tr>
+                    <th>節次/星期</th>
+                    <th>星期一</th>
+                    <th>星期二</th>
+                    <th>星期三</th>
+                    <th>星期四</th>
+                    <th>星期五</th>
+                </tr>
+            </thead>
+            <tbody id="timetableBody">
+                <tr>
+                    <th>08:10-09:00<br>第一節</th>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                </tr>
+                <tr>
+                    <th>09:10-10:00<br>第二節</th>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                </tr>
+                <tr>
+                    <th>10:10-11:00<br>第三節</th>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                </tr>
+                <tr>
+                    <th>11:10-12:00<br>第四節</th>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                </tr>
+                <tr>
+                    <th>12:10-13:00<br>午休</th>
+                    <td class="time-slot" colspan="5">午休</td>
+                </tr>
+                <tr>
+                    <th>13:10-14:00<br>第五節</th>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                </tr>
+                <tr>
+                    <th>14:10-15:00<br>第六節</th>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                </tr>
+                <tr>
+                    <th>15:10-16:00<br>第七節</th>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                </tr>
+                <tr>
+                    <th>16:10-17:00<br>第八節</th>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                </tr>
+                <tr>
+                    <th>17:10-18:00<br>第九節</th>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                    <td class="time-slot"></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="async-container">
+            <h3>非同步課程</h3>
+            <div id="asyncCourses"></div>
+        </div>
+    </div>
+    <div class="credits">
+        總學分數: <span id="totalCredits">0</span>
     </div>
     <script>
-        const upload = document.getElementById('upload');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        const typhoonName = document.getElementById('typhoon-name');
-        const typhoonNumber = document.getElementById('typhoon-number');
-        const pressure = document.getElementById('pressure');
-        const radius7 = document.getElementById('radius-7');
-        const radius10 = document.getElementById('radius-10');
-        const maxWind = document.getElementById('max-wind');
-        const maxGust = document.getElementById('max-gust');
-        const forecastSpeed = document.getElementById('forecast-speed');
-        const legend = document.getElementById('legend');
+        let totalCredits = 0;
+        const courseNames = new Set();
 
-        upload.addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                const image = new Image();
-                image.onload = function() {
-                    const legendHeight = legend.height;
-                    const targetHeight = image.height + legendHeight;
+        function addCourse() {
+            const courseName = document.getElementById('courseName').value;
+            const teacherName = document.getElementById('teacherName').value;
+            const courseLocation = document.getElementById('courseLocation').value;
+            const courseCredits = parseInt(document.getElementById('courseCredits').value);
+            const isAsync = document.getElementById('isAsync').checked;
+            const day = document.getElementById('daySelect').value;
+            const times = Array.from(document.querySelectorAll('#timeSelect input:checked')).map(checkbox => checkbox.value);
 
-                    // 裁切上传的颱風路徑圖
-                    const aspectRatio = image.width / image.height;
-                    let newWidth = image.width;
-                    let newHeight = image.height;
-
-                    if (newHeight > canvas.height - legendHeight) {
-                        newHeight = canvas.height - legendHeight;
-                        newWidth = newHeight * aspectRatio;
-                    }
-
-                    canvas.width = newWidth;
-                    canvas.height = newHeight + legendHeight;
-
-                    // 绘制上传的图片
-                    ctx.drawImage(image, 0, 0, newWidth, newHeight);
-
-                    // 绘制颱風信息
-                    drawTyphoonInfo();
-
-                    // 绘制图例
-                    ctx.drawImage(legend, 0, newHeight, canvas.width, legendHeight);
-                }
-                image.src = e.target.result;
+            if (!courseName || !teacherName || !courseLocation || isNaN(courseCredits)) {
+                alert("請填寫所有欄位並輸入有效的學分數");
+                return;
             }
-            
-            reader.readAsDataURL(file);
-        });
 
-        function drawTyphoonInfo() {
-            // 绘制半透明背景
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(0, 0, canvas.width, 150);
+            if (!courseNames.has(courseName)) {
+                totalCredits += courseCredits;
+                courseNames.add(courseName);
+                document.getElementById('totalCredits').innerText = totalCredits;
+            }
 
-            // 绘制文本
-            ctx.fillStyle = '#fff';
-            ctx.font = '20px Arial';
-            ctx.fillText(`颱風名稱: ${typhoonName.textContent}`, 20, 40);
-            ctx.fillText(`颱風編號: ${typhoonNumber.textContent}`, 20, 70);
-            ctx.fillText(`中心氣壓: ${pressure.textContent}`, 20, 100);
-            ctx.fillText(`七級暴風圈半徑: ${radius7.textContent}`, 20, 130);
-            ctx.fillText(`十級暴風圈半徑: ${radius10.textContent}`, 20, 160);
-            ctx.fillText(`近中心最大風速: ${maxWind.textContent}`, 20, 190);
-            ctx.fillText(`瞬間最大陣風: ${maxGust.textContent}`, 20, 220);
-            ctx.fillText(`未來預測路徑: ${forecastSpeed.textContent}`, 20, 250);
+            if (isAsync) {
+                const asyncCourses = document.getElementById('asyncCourses');
+                const courseDiv = document.createElement('div');
+                courseDiv.className = 'async-course';
+                courseDiv.innerHTML = `<strong>${courseName}</strong><br>${teacherName}<br>${courseLocation}`;
+                asyncCourses.appendChild(courseDiv);
+            } else {
+                if (times.length === 0) {
+                    alert("請選擇至少一個節次");
+                    return;
+                }
+
+                const timetableBody = document.getElementById('timetableBody');
+
+                times.forEach(time => {
+                    const row = timetableBody.rows[time - 1];
+                    const cell = row.cells[day];
+                    cell.innerHTML = `<strong>${courseName}</strong><br>${teacherName}<br>${courseLocation}`;
+                    cell.style.backgroundColor = "#d3ffd3";
+                });
+            }
         }
     </script>
 </body>
 </html>
+
 
 
