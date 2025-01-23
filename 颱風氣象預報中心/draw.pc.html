@@ -1,282 +1,1010 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>課表</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f0f8ff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
-            padding: 20px;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>颱風預測路徑繪圖</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
-        .timetable-container {
-            width: 90%;
-            max-width: 1200px;
-        }
-
-        .timetable {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            font-size: 16px;
-            text-align: center;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .timetable th, .timetable td {
-            padding: 12px;
-            border: 1px solid #ddd;
-            width: 14.28%; /* 100% divided by 7 columns */
-        }
-
-        .timetable th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-
-        .time-slot {
-            background-color: #e0e7ff;
-        }
-
-        .input-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .input-container input,
-        .input-container select {
-            padding: 8px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        .input-container button {
-            padding: 10px;
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        .input-container button:hover {
-            background-color: #45a049;
-        }
-
-        .checkbox-group {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .async-container {
-            width: 100%;
-            margin-top: 20px;
-        }
-
-        .async-course {
-            padding: 10px;
-            background-color: #d3ffd3;
-            border: 1px solid #ddd;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .credits {
-            font-size: 20px;
-            margin-top: 20px;
-            text-align: center;
-        }
-    </style>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Microsoft JhengHei", sans-serif;
+      background-color: #f0f2f5;
+    }
+    #map {
+      width: 100%;
+      height: 95vh; /* 可自行調整成 px / % / vh 等 */
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
+      position: relative;
+    }
+    .bottom-panel {
+      background-color: #fff;
+      box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.2);
+      padding: 20px;
+    }
+    .bottom-panel h2 {
+      margin-top: 0;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-inline {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .form-inline > div {
+      margin-right: 20px;
+      margin-bottom: 5px;
+    }
+    label {
+      font-weight: bold;
+      margin-right: 6px;
+    }
+    input[type="number"],
+    input[type="text"],
+    select {
+      width: 90px;
+      margin-right: 10px;
+      margin-bottom: 5px;
+    }
+    button {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      font-size: 0.9rem;
+      color: #fff;
+    }
+    .btn-primary   { background-color: #007bff; }
+    .btn-success   { background-color: #4caf50; }
+    .btn-warning   { background-color: #ff9800; }
+    .btn-danger    { background-color: #f44336; }
+    .btn-info      { background-color: #009688; }
+    #past-list div { margin-bottom: 5px; }
+    .future-container {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #fafafa;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .future-item {
+      background-color: #fff;
+      padding: 10px;
+      margin-bottom: 8px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .future-item h4 {
+      margin: 0 0 5px;
+    }
+    .crosshair-cursor {
+      cursor: crosshair;
+    }
+    .time-label {
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="input-container">
-        <input type="text" id="courseName" placeholder="課程名稱">
-        <input type="text" id="teacherName" placeholder="教師名稱">
-        <input type="text" id="courseLocation" placeholder="上課地點">
-        <input type="number" id="courseCredits" placeholder="學分數" min="1" max="10">
-        <select id="daySelect">
-            <option value="1">星期一</option>
-            <option value="2">星期二</option>
-            <option value="3">星期三</option>
-            <option value="4">星期四</option>
-            <option value="5">星期五</option>
-        </select>
-        <div class="checkbox-group" id="timeSelect">
-            <label><input type="checkbox" value="1"> 第一節</label>
-            <label><input type="checkbox" value="2"> 第二節</label>
-            <label><input type="checkbox" value="3"> 第三節</label>
-            <label><input type="checkbox" value="4"> 第四節</label>
-            <label><input type="checkbox" value="6"> 第五節</label>
-            <label><input type="checkbox" value="7"> 第六節</label>
-            <label><input type="checkbox" value="8"> 第七節</label>
-            <label><input type="checkbox" value="9"> 第八節</label>
-            <label><input type="checkbox" value="10"> 第九節</label>
+  <!-- 地圖 -->
+  <div id="map"></div>
+
+  <!-- 下方操作表單區 -->
+  <div class="bottom-panel" id="bottomPanel">
+    <h2>颱風預測路徑繪圖</h2>
+
+    <!-- 一、過去位置 -->
+    <div class="form-group">
+      <h3>過去位置</h3>
+      <div class="form-inline">
+        <div>
+          <label>經度</label>
+          <input type="number" step="0.01" id="past-lon" />
         </div>
-        <label>
-            <input type="checkbox" id="isAsync"> 非同步課程
-        </label>
-        <button onclick="addCourse()">新增課程</button>
-    </div>
-    <div class="timetable-container">
-        <table class="timetable">
-            <thead>
-                <tr>
-                    <th>節次/星期</th>
-                    <th>星期一</th>
-                    <th>星期二</th>
-                    <th>星期三</th>
-                    <th>星期四</th>
-                    <th>星期五</th>
-                </tr>
-            </thead>
-            <tbody id="timetableBody">
-                <tr>
-                    <th>08:10-09:00<br>第一節</th>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                </tr>
-                <tr>
-                    <th>09:10-10:00<br>第二節</th>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                </tr>
-                <tr>
-                    <th>10:10-11:00<br>第三節</th>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                </tr>
-                <tr>
-                    <th>11:10-12:00<br>第四節</th>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                </tr>
-                <tr>
-                    <th>12:10-13:00<br>午休</th>
-                    <td class="time-slot" colspan="5">午休</td>
-                </tr>
-                <tr>
-                    <th>13:10-14:00<br>第五節</th>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                </tr>
-                <tr>
-                    <th>14:10-15:00<br>第六節</th>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                </tr>
-                <tr>
-                    <th>15:10-16:00<br>第七節</th>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                </tr>
-                <tr>
-                    <th>16:10-17:00<br>第八節</th>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                </tr>
-                <tr>
-                    <th>17:10-18:00<br>第九節</th>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                    <td class="time-slot"></td>
-                </tr>
-            </tbody>
-        </table>
-        <div class="async-container">
-            <h3>非同步課程</h3>
-            <div id="asyncCourses"></div>
+        <div>
+          <label>緯度</label>
+          <input type="number" step="0.01" id="past-lat" />
         </div>
+        <button class="btn-info" type="button" onclick="addPastPoint()">新增</button>
+      </div>
+      <div id="past-list"></div>
     </div>
-    <div class="credits">
-        總學分數: <span id="totalCredits">0</span>
+    <hr />
+
+    <!-- 二、現在位置 -->
+    <div class="form-group">
+      <h3>現在位置</h3>
+      <div class="form-inline">
+        <div>
+          <label>經度</label>
+          <input type="number" step="0.01" id="current-lon" />
+        </div>
+        <div>
+          <label>緯度</label>
+          <input type="number" step="0.01" id="current-lat" />
+        </div>
+        <div>
+          <label>強度</label>
+          <select id="current-intensity">
+            <option value="TD">TD</option>
+            <option value="TS">TS</option>
+            <option value="ST">ST</option>
+            <option value="TY">TY</option>
+          </select>
+        </div>
+        <div>
+          <label>7級半徑</label>
+          <input type="number" step="1" id="current-r7" />
+        </div>
+        <div>
+          <label>10級半徑</label>
+          <input type="number" step="1" id="current-r10" />
+        </div>
+        <div>
+          <label>時間</label>
+          <input type="text" id="current-time" placeholder="如: 現在 1/25 20時" />
+        </div>
+        <button class="btn-primary" type="button" onclick="setCurrent()">設定/更新</button>
+      </div>
     </div>
-    <script>
-        let totalCredits = 0;
-        const courseNames = new Set();
+    <hr />
 
-        function addCourse() {
-            const courseName = document.getElementById('courseName').value;
-            const teacherName = document.getElementById('teacherName').value;
-            const courseLocation = document.getElementById('courseLocation').value;
-            const courseCredits = parseInt(document.getElementById('courseCredits').value);
-            const isAsync = document.getElementById('isAsync').checked;
-            const day = document.getElementById('daySelect').value;
-            const times = Array.from(document.querySelectorAll('#timeSelect input:checked')).map(checkbox => checkbox.value);
+    <!-- 三、未來位置 -->
+    <div class="form-group">
+      <h3>未來預測</h3>
+      <button class="btn-info" type="button" onclick="addFutureItem()">新增預測點</button>
+      <div class="future-container" id="future-container"></div>
+    </div>
+    <hr />
 
-            if (!courseName || !teacherName || !courseLocation || isNaN(courseCredits)) {
-                alert("請填寫所有欄位並輸入有效的學分數");
-                return;
-            }
+    <!-- 四、誤差範圍 -->
+    <div class="form-group">
+      <h3>繪製誤差範圍</h3>
+      <button class="btn-primary" onclick="toggleErrorDraw()">繪製模式</button>
+      <button class="btn-warning" onclick="deleteLastErrorVertex()">刪除最後一點</button>
+      <button class="btn-success" onclick="finishErrorPolygon()">完成</button>
+    </div>
+    <hr />
 
-            if (!courseNames.has(courseName)) {
-                totalCredits += courseCredits;
-                courseNames.add(courseName);
-                document.getElementById('totalCredits').innerText = totalCredits;
-            }
+    <!-- 五、警戒區 -->
+    <div class="form-group">
+      <h3>繪製警戒區</h3>
+      <button class="btn-primary" onclick="toggleWarningDraw()">繪製模式</button>
+      <button class="btn-warning" onclick="deleteLastWarningVertex()">刪除最後一點</button>
+      <button class="btn-success" onclick="finishWarningPolygon()">完成</button>
+    </div>
+    <hr />
 
-            if (isAsync) {
-                const asyncCourses = document.getElementById('asyncCourses');
-                const courseDiv = document.createElement('div');
-                courseDiv.className = 'async-course';
-                courseDiv.innerHTML = `<strong>${courseName}</strong><br>${teacherName}<br>${courseLocation}`;
-                asyncCourses.appendChild(courseDiv);
-            } else {
-                if (times.length === 0) {
-                    alert("請選擇至少一個節次");
-                    return;
-                }
+    <!-- 六、匯入檔案（過去位置、警戒區等） -->
+    <div class="form-group">
+      <h3>匯入檔案</h3>
+      <input type="file" id="importFile" accept=".json" />
+      <button class="btn-info" onclick="importData()">匯入</button>
+    </div>
+    <hr />
 
-                const timetableBody = document.getElementById('timetableBody');
+    <!-- 其他功能 -->
+    <div>
+      <button class="btn-info" onclick="exportMapAsImage()">下載地圖</button>
+      <button class="btn-warning" onclick="openExportOptions()">選擇匯出項目</button>
+      <button class="btn-warning" onclick="exportAllJSON()">全部匯出</button>
+      <button class="btn-danger" onclick="resetAll()">全部重置</button>
+    </div>
 
-                times.forEach(time => {
-                    const row = timetableBody.rows[time - 1];
-                    const cell = row.cells[day];
-                    cell.innerHTML = `<strong>${courseName}</strong><br>${teacherName}<br>${courseLocation}`;
-                    cell.style.backgroundColor = "#d3ffd3";
-                });
-            }
+    <!-- 選擇性匯出(JSON)的簡易彈出區塊 -->
+    <div id="exportOptions" style="display:none; margin-top:10px; border:1px solid #ccc; padding:10px;">
+      <h4>請選擇要匯出的資料：</h4>
+      <div>
+        <input type="checkbox" id="chkPast" checked /> <label for="chkPast">過去位置</label>
+      </div>
+      <div>
+        <input type="checkbox" id="chkCurrent" checked /> <label for="chkCurrent">現在位置</label>
+      </div>
+      <div>
+        <input type="checkbox" id="chkFuture" checked /> <label for="chkFuture">未來預測</label>
+      </div>
+      <div>
+        <input type="checkbox" id="chkError" checked /> <label for="chkError">誤差範圍</label>
+      </div>
+      <div>
+        <input type="checkbox" id="chkWarning" checked /> <label for="chkWarning">警戒區</label>
+      </div>
+      <button class="btn-success" onclick="exportSelectedJSON()">匯出勾選項目</button>
+      <button class="btn-danger" onclick="closeExportOptions()">關閉</button>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- html2canvas for map screenshot -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+
+  <script>
+    /********************************************
+     *             Leaflet Map 初始化
+     ********************************************/
+    const map = L.map("map").setView([23.5, 121], 6);
+    const baseLayer = L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      { maxZoom: 18, attribution: "Map tiles by CartoDB, CC BY 3.0" }
+    );
+    baseLayer.addTo(map);
+
+    /********************************************
+     *      全域資料結構
+     ********************************************/
+    let pastPoints = []; // [[lat, lng], ...]
+    let currentData = null; // { lat, lng, r7, r10, intensity, time, ... }
+    // 加入: marker 也存到此 (draggable marker)
+    let futureData = [];  // [ { lat, lng, r7, r10, errorRadius, intensity, time, showSymbol, ... marker: L.Marker, labelLine, labelMarker }, ... ]
+    let errorPolygon = null, errorVertices = [], isDrawingError = false;
+    let warningPolygon = null, warningVertices = [], isDrawingWarning = false;
+
+    /********************************************
+     *         過去位置 (多筆)
+     ********************************************/
+    function addPastPoint() {
+      const lat = parseFloat(document.getElementById("past-lat").value);
+      const lng = parseFloat(document.getElementById("past-lon").value);
+      if (isNaN(lat) || isNaN(lng)) {
+        alert("請輸入正確的經緯度！");
+        return;
+      }
+      pastPoints.push([lat, lng]);
+      document.getElementById("past-lat").value = "";
+      document.getElementById("past-lon").value = "";
+      renderPastList();
+      redrawAll();
+    }
+    function renderPastList() {
+      const container = document.getElementById("past-list");
+      container.innerHTML = "";
+      pastPoints.forEach((pt, idx) => {
+        const div = document.createElement("div");
+        div.innerHTML = `
+          (${pt[1].toFixed(2)}, ${pt[0].toFixed(2)})
+          <button class="btn-danger" style="padding:2px 6px;font-size:0.8rem;"
+            onclick="removePastPoint(${idx})">刪除</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+    function removePastPoint(index) {
+      pastPoints.splice(index, 1);
+      renderPastList();
+      redrawAll();
+    }
+
+    /********************************************
+     *           現在位置(單筆)
+     ********************************************/
+    function setCurrent() {
+      const lat = parseFloat(document.getElementById("current-lat").value);
+      const lng = parseFloat(document.getElementById("current-lon").value);
+      if (isNaN(lat) || isNaN(lng)) {
+        alert("請輸入正確的經緯度！");
+        return;
+      }
+
+      const intensity = document.getElementById("current-intensity").value;
+      const r7 = parseFloat(document.getElementById("current-r7").value) || 0;
+      const r10 = parseFloat(document.getElementById("current-r10").value) || 0;
+      const time = document.getElementById("current-time").value || "";
+
+      // 若原先就有標籤/線，先清除
+      if (currentData && currentData.labelLine)  map.removeLayer(currentData.labelLine);
+      if (currentData && currentData.labelMarker)map.removeLayer(currentData.labelMarker);
+
+      currentData = {
+        lat, lng, r7, r10, intensity, time,
+        labelLat: null, labelLng: null,
+        labelLine: null, labelMarker: null
+      };
+      redrawAll();
+    }
+
+    /********************************************
+     *           未來預測(多筆)
+     ********************************************/
+    function addFutureItem() {
+      const idx = futureData.length;
+      const container = document.getElementById("future-container");
+
+      // 建立一個項目UI
+      const div = document.createElement("div");
+      div.className = "future-item";
+      div.id = `future-item-${idx}`;
+      div.innerHTML = `
+        <h4>未來位置 ${idx + 1}</h4>
+        <div class="form-inline">
+          <div>
+            <label>經度</label>
+            <input type="number" step="0.01" id="f-lon-${idx}" />
+          </div>
+          <div>
+            <label>緯度</label>
+            <input type="number" step="0.01" id="f-lat-${idx}" />
+          </div>
+          <div>
+            <label>強度</label>
+            <select id="f-intensity-${idx}">
+              <option value="TD">TD</option>
+              <option value="TS">TS</option>
+              <option value="ST">ST</option>
+              <option value="TY">TY</option>
+            </select>
+          </div>
+          <div>
+            <label>7級</label>
+            <input type="number" step="1" id="f-r7-${idx}" />
+          </div>
+          <div>
+            <label>10級</label>
+            <input type="number" step="1" id="f-r10-${idx}" />
+          </div>
+        </div>
+        <div class="form-inline" style="margin-top:5px;">
+          <div>
+            <label>誤差</label>
+            <input type="number" step="1" id="f-error-${idx}" />
+          </div>
+          <div>
+            <label>時間</label>
+            <input type="text" id="f-time-${idx}" placeholder="如: 1/26 08時" />
+          </div>
+          <div>
+            <input type="checkbox" id="f-showSymbol-${idx}" checked />
+            <label>強度符號</label>
+          </div>
+          <div>
+            <input type="checkbox" id="f-showWind-${idx}" checked />
+            <label>暴風圈</label>
+          </div>
+          <div>
+            <input type="checkbox" id="f-showError-${idx}" checked />
+            <label>誤差圈</label>
+          </div>
+        </div>
+        <div style="margin-top:5px;">
+          <button class="btn-primary" onclick="updateFuture(${idx})">更新</button>
+          <!-- 新增: 刪除按鈕 -->
+          <button class="btn-danger" onclick="deleteFutureItem(${idx})">刪除</button>
+        </div>
+      `;
+      container.appendChild(div);
+
+      // 初始化該筆資料
+      futureData.push({
+        lat: NaN,
+        lng: NaN,
+        intensity: "TD",
+        r7: 0,
+        r10: 0,
+        errorRadius: 0,
+        time: "",
+        showSymbol: true,
+        showWind: true,
+        showError: true,
+        labelLat: null,
+        labelLng: null,
+        labelLine: null,
+        labelMarker: null,
+        marker: null // 之後存放該點的 draggable marker
+      });
+    }
+
+    // (1) 更新資料
+    function updateFuture(idx) {
+      const lat = parseFloat(document.getElementById(`f-lat-${idx}`).value);
+      const lng = parseFloat(document.getElementById(`f-lon-${idx}`).value);
+      if (isNaN(lat) || isNaN(lng)) {
+        alert("請輸入正確的經緯度！");
+        return;
+      }
+      const intensity   = document.getElementById(`f-intensity-${idx}`).value;
+      const r7          = parseFloat(document.getElementById(`f-r7-${idx}`).value) || 0;
+      const r10         = parseFloat(document.getElementById(`f-r10-${idx}`).value) || 0;
+      const errorRadius = parseFloat(document.getElementById(`f-error-${idx}`).value) || 0;
+      const time        = document.getElementById(`f-time-${idx}`).value || "";
+      const showSymbol  = document.getElementById(`f-showSymbol-${idx}`).checked;
+      const showWind    = document.getElementById(`f-showWind-${idx}`).checked;
+      const showError   = document.getElementById(`f-showError-${idx}`).checked;
+
+      // 若原先有標籤/線/marker 就先清除 (地圖上的)
+      if (futureData[idx].labelLine)   map.removeLayer(futureData[idx].labelLine);
+      if (futureData[idx].labelMarker) map.removeLayer(futureData[idx].labelMarker);
+      if (futureData[idx].marker)      map.removeLayer(futureData[idx].marker);
+
+      futureData[idx] = {
+        lat, lng,
+        intensity,
+        r7,
+        r10,
+        errorRadius,
+        time,
+        showSymbol,
+        showWind,
+        showError,
+        labelLat: null,
+        labelLng: null,
+        labelLine: null,
+        labelMarker: null,
+        marker: null
+      };
+      redrawAll();
+    }
+
+    // (2) 刪除該筆未來預測
+    function deleteFutureItem(idx) {
+      // 移除地圖上的圖層
+      if (futureData[idx].labelLine)   map.removeLayer(futureData[idx].labelLine);
+      if (futureData[idx].labelMarker) map.removeLayer(futureData[idx].labelMarker);
+      if (futureData[idx].marker)      map.removeLayer(futureData[idx].marker);
+
+      futureData.splice(idx, 1);
+
+      // 重新渲染「未來預測」UI區塊（簡單做法：清空後再重新生成）
+      const container = document.getElementById("future-container");
+      container.innerHTML = "";
+      futureData.forEach((fd, i) => {
+        // 重新建立 DOM 項目
+        const div = document.createElement("div");
+        div.className = "future-item";
+        div.id = `future-item-${i}`;
+        div.innerHTML = `
+          <h4>未來位置 ${i + 1}</h4>
+          <div class="form-inline">
+            <div>
+              <label>經度</label>
+              <input type="number" step="0.01" id="f-lon-${i}" value="${ isNaN(fd.lng)? '' : fd.lng}" />
+            </div>
+            <div>
+              <label>緯度</label>
+              <input type="number" step="0.01" id="f-lat-${i}" value="${ isNaN(fd.lat)? '' : fd.lat}" />
+            </div>
+            <div>
+              <label>強度</label>
+              <select id="f-intensity-${i}">
+                <option value="TD" ${fd.intensity==='TD'?'selected':''}>TD</option>
+                <option value="TS" ${fd.intensity==='TS'?'selected':''}>TS</option>
+                <option value="ST" ${fd.intensity==='ST'?'selected':''}>ST</option>
+                <option value="TY" ${fd.intensity==='TY'?'selected':''}>TY</option>
+              </select>
+            </div>
+            <div>
+              <label>7級</label>
+              <input type="number" step="1" id="f-r7-${i}" value="${fd.r7}" />
+            </div>
+            <div>
+              <label>10級</label>
+              <input type="number" step="1" id="f-r10-${i}" value="${fd.r10}" />
+            </div>
+          
+            <div>
+              <label>誤差</label>
+              <input type="number" step="1" id="f-error-${i}" value="${fd.errorRadius}" />
+            </div>
+            </div>
+          <div class="form-inline" style="margin-top:5px;">
+            <div>
+              <label>時間</label>
+              <input type="text" id="f-time-${i}" value="${fd.time}" />
+            </div>
+            <div>
+              <input type="checkbox" id="f-showSymbol-${i}" ${fd.showSymbol?'checked':''} />
+              <label>強度符號</label>
+            </div>
+            <div>
+              <input type="checkbox" id="f-showWind-${i}" ${fd.showWind?'checked':''} />
+              <label>暴風圈</label>
+            </div>
+            <div>
+              <input type="checkbox" id="f-showError-${i}" ${fd.showError?'checked':''} />
+              <label>誤差圈</label>
+            </div>
+          </div>
+          <div >
+            <button class="btn-primary" onclick="updateFuture(${i})">更新</button>
+            <button class="btn-danger" onclick="deleteFutureItem(${i})">刪除</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      redrawAll();
+    }
+
+    /********************************************
+     *      地圖重繪：路徑、Marker、多邊形
+     ********************************************/
+    function redrawAll() {
+      // 移除所有(除了底圖)
+      map.eachLayer((layer) => {
+        if (layer !== baseLayer) {
+          map.removeLayer(layer);
         }
-    </script>
+      });
+
+      // 1. 重繪「過去路徑」(實線)
+      if (pastPoints.length > 1) {
+        L.polyline(pastPoints, { color: "black", dashArray: null, lineCap: "round" }).addTo(map);
+      }
+
+      // 2. 現在位置
+      if (currentData && !isNaN(currentData.lat) && !isNaN(currentData.lng)) {
+        const marker = addTyphoonMarker(currentData.lat, currentData.lng, currentData.intensity, false);
+        marker.addTo(map);
+        if (currentData.r7 > 0) {
+          L.circle([currentData.lat, currentData.lng], {
+            color: "orange", fillColor: "none", radius: currentData.r7 * 1000
+          }).addTo(map);
+        }
+        if (currentData.r10 > 0) {
+          L.circle([currentData.lat, currentData.lng], {
+            color: "red", fillColor: "none", radius: currentData.r10 * 1000
+          }).addTo(map);
+        }
+        placeTimeLabel(currentData, currentData.lat, currentData.lng, Math.max(currentData.r7, currentData.r10));
+      }
+
+      // 3. 過去 + 現在 + 未來路徑
+      let combinedPath = [...pastPoints];
+      if (currentData && !isNaN(currentData.lat)) combinedPath.push([currentData.lat, currentData.lng]);
+      futureData.forEach(fd => {
+        if (!isNaN(fd.lat) && !isNaN(fd.lng)) {
+          combinedPath.push([fd.lat, fd.lng]);
+        }
+      });
+      if (combinedPath.length > 1) {
+        let futureStartIndex = pastPoints.length + (currentData ? 1 : 0);
+        for (let i = 0; i < combinedPath.length - 1; i++) {
+          // 未來部份畫虛線
+          const isFuture = (i >= futureStartIndex - 1);
+          L.polyline([combinedPath[i], combinedPath[i+1]], {
+            color: "black", dashArray: isFuture ? "5,5" : null
+          }).addTo(map);
+        }
+      }
+
+      // 4. 未來位置(各點)
+      futureData.forEach((fd, idx) => {
+        if (isNaN(fd.lat) || isNaN(fd.lng)) return;
+
+        // (a) 建立 draggable marker (若 showSymbol=true 表示要顯示強度符號)
+        if (fd.showSymbol) {
+          const marker = addTyphoonMarker(fd.lat, fd.lng, fd.intensity, true);
+          marker.addTo(map);
+          fd.marker = marker; // 記錄此 marker 物件
+
+          // 監聽拖曳結束，更新未來點的 lat/lng + 更新表單值
+          marker.on("dragend", (e) => {
+            const newPos = e.target.getLatLng();
+            fd.lat = newPos.lat;
+            fd.lng = newPos.lng;
+            // 同步更新表單
+            const latInput = document.getElementById(`f-lat-${idx}`);
+            const lonInput = document.getElementById(`f-lon-${idx}`);
+            if (latInput) latInput.value = fd.lat.toFixed(2);
+            if (lonInput) lonInput.value = fd.lng.toFixed(2);
+
+            redrawAll();
+          });
+        }
+
+        // (b) 暴風圈(虛線)
+        if (fd.showWind && fd.r7 > 0) {
+          L.circle([fd.lat, fd.lng], {
+            color: "orange", fillColor: "none", radius: fd.r7 * 1000, dashArray: "5,5"
+          }).addTo(map);
+        }
+        if (fd.showWind && fd.r10 > 0) {
+          L.circle([fd.lat, fd.lng], {
+            color: "red", fillColor: "none", radius: fd.r10 * 1000, dashArray: "5,5"
+          }).addTo(map);
+        }
+
+        // (c) 誤差圈(藍色)
+        if (fd.showError && fd.errorRadius > 0) {
+          L.circle([fd.lat, fd.lng], {
+            color: "blue", fillColor: "none", radius: fd.errorRadius * 1000, dashArray: "5,5"
+          }).addTo(map);
+        }
+
+        // (d) 時間標籤(可拖曳)
+        const maxCircle = fd.showWind
+          ? Math.max(fd.r7, fd.r10, fd.errorRadius)
+          : (fd.showError ? fd.errorRadius : 0);
+        placeTimeLabel(fd, fd.lat, fd.lng, maxCircle);
+      });
+
+      // 5. 誤差多邊形
+      if (errorPolygon) errorPolygon.addTo(map);
+
+      // 6. 警戒區多邊形
+      if (warningPolygon) warningPolygon.addTo(map);
+    }
+
+    /********************************************
+     *     時間標籤(可拖曳) + 細線連結
+     ********************************************/
+    function placeTimeLabel(dataObj, baseLat, baseLng, radius) {
+      if (!dataObj.time) return; // 無時間就不顯示
+      if (dataObj.labelLat == null || dataObj.labelLng == null) {
+        // 給定一個偏移位置
+        const offsetKm = radius + 10;
+        const angleDeg = 45;
+        const rad = angleDeg * (Math.PI / 180);
+        const dLat = offsetKm / 111;
+        const dLng = offsetKm / (111 * Math.cos(baseLat * Math.PI/180));
+        dataObj.labelLat = baseLat + dLat * Math.sin(rad);
+        dataObj.labelLng = baseLng + dLng * Math.cos(rad);
+      }
+      dataObj.labelLine = L.polyline(
+        [[baseLat, baseLng], [dataObj.labelLat, dataObj.labelLng]],
+        { color: "#666", weight: 1, dashArray: "1,4" }
+      ).addTo(map);
+
+      const divIcon = L.divIcon({
+        className: "",
+        html: `<div class="time-label">${dataObj.time}</div>`
+      });
+      dataObj.labelMarker = L.marker([dataObj.labelLat, dataObj.labelLng], {
+        icon: divIcon, draggable: true
+      }).addTo(map);
+
+      dataObj.labelMarker.on("drag", function(e) {
+        const newPos = e.target.getLatLng();
+        dataObj.labelLat = newPos.lat;
+        dataObj.labelLng = newPos.lng;
+        dataObj.labelLine.setLatLngs([[baseLat, baseLng], [newPos.lat, newPos.lng]]);
+      });
+    }
+
+    /********************************************
+     *     新增颱風圖示 Marker (可選是否 draggable)
+     ********************************************/
+    function addTyphoonMarker(lat, lng, intensity, isDraggable) {
+      const iconUrl = getIconUrl(intensity);
+      const icon = L.icon({
+        iconUrl: iconUrl,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+      return L.marker([lat, lng], { icon, draggable: isDraggable });
+    }
+    function getIconUrl(intensity) {
+      switch (intensity) {
+        case "TD": return "td1.png";
+        case "TS": return "ts1.png";
+        case "ST": return "st1.png";
+        case "TY": return "ty.png";
+        default:   return "default.png";
+      }
+    }
+
+    /********************************************
+     *      誤差範圍繪製 (多邊形)
+     ********************************************/
+    function toggleErrorDraw() {
+      isDrawingError = !isDrawingError;
+      if (isDrawingError) {
+        alert("請在地圖上點擊以繪製誤差範圍(至少3點)；再次點擊按鈕可退出。");
+        if (errorPolygon) {
+          map.removeLayer(errorPolygon);
+          errorPolygon = null;
+        }
+        errorVertices = [];
+        map.getContainer().classList.add("crosshair-cursor");
+      } else {
+        map.getContainer().classList.remove("crosshair-cursor");
+        finishErrorPolygon();
+      }
+    }
+    function deleteLastErrorVertex() {
+      if (errorVertices.length > 0) {
+        errorVertices.pop();
+        updateErrorPolygon();
+      }
+    }
+    function finishErrorPolygon() {
+      if (errorPolygon && errorVertices.length >= 3) {
+        errorPolygon.setStyle({ fillColor: "blue", fillOpacity: 0.2, stroke: false });
+      }
+      isDrawingError = false;
+      map.getContainer().classList.remove("crosshair-cursor");
+      redrawAll();
+    }
+    function updateErrorPolygon() {
+      if (!errorPolygon) {
+        errorPolygon = L.polygon(errorVertices, {
+          fillColor: "blue",
+          fillOpacity: 0.2,
+          stroke: false
+        }).addTo(map);
+      } else {
+        errorPolygon.setLatLngs(errorVertices);
+      }
+    }
+
+    /********************************************
+     *      警戒區繪製 (多邊形)
+     ********************************************/
+    function toggleWarningDraw() {
+      isDrawingWarning = !isDrawingWarning;
+      if (isDrawingWarning) {
+        alert("請在地圖上點擊以繪製警戒區(至少3點)；再次點擊按鈕可退出。");
+        if (warningPolygon) {
+          map.removeLayer(warningPolygon);
+          warningPolygon = null;
+        }
+        warningVertices = [];
+        map.getContainer().classList.add("crosshair-cursor");
+      } else {
+        map.getContainer().classList.remove("crosshair-cursor");
+        finishWarningPolygon();
+      }
+    }
+    function deleteLastWarningVertex() {
+      if (warningVertices.length > 0) {
+        warningVertices.pop();
+        updateWarningPolygon();
+      }
+    }
+    function finishWarningPolygon() {
+      if (warningPolygon && warningVertices.length >= 3) {
+        warningPolygon.setStyle({ fillColor: "red", fillOpacity: 0.2, stroke: false });
+      }
+      isDrawingWarning = false;
+      map.getContainer().classList.remove("crosshair-cursor");
+      redrawAll();
+    }
+    function updateWarningPolygon() {
+      if (!warningPolygon) {
+        warningPolygon = L.polygon(warningVertices, {
+          fillColor: "red",
+          fillOpacity: 0.2,
+          stroke: false
+        }).addTo(map);
+      } else {
+        warningPolygon.setLatLngs(warningVertices);
+      }
+    }
+
+    /********************************************
+     *   地圖 click 事件(用於多邊形繪製)
+     ********************************************/
+    map.on("click", (e) => {
+      if (isDrawingError) {
+        errorVertices.push(e.latlng);
+        updateErrorPolygon();
+      }
+      if (isDrawingWarning) {
+        warningVertices.push(e.latlng);
+        updateWarningPolygon();
+      }
+    });
+
+    /********************************************
+     *    匯出地圖截圖(只截地圖區，不含下方表單)
+     ********************************************/
+    function exportMapAsImage() {
+      const mapContainer = document.getElementById("map");
+      html2canvas(mapContainer).then((canvas) => {
+        const imgData = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.download = "typhoon_map.png";
+        link.href = imgData;
+        link.click();
+      });
+    }
+
+    /********************************************
+     *  (A) 選擇性匯出 JSON：依 Checkbox 選項
+     ********************************************/
+    function openExportOptions() {
+      document.getElementById("exportOptions").style.display = "block";
+    }
+    function closeExportOptions() {
+      document.getElementById("exportOptions").style.display = "none";
+    }
+
+    function exportSelectedJSON() {
+      // 從 checkbox 判斷要輸出的項目
+      const expPast     = document.getElementById("chkPast").checked;
+      const expCurrent  = document.getElementById("chkCurrent").checked;
+      const expFuture   = document.getElementById("chkFuture").checked;
+      const expError    = document.getElementById("chkError").checked;
+      const expWarning  = document.getElementById("chkWarning").checked;
+
+      const data = {};
+      if (expPast) {
+        data.pastPoints = pastPoints;
+      }
+      if (expCurrent && currentData) {
+        data.currentData = {
+          lat: currentData.lat,
+          lng: currentData.lng,
+          intensity: currentData.intensity,
+          r7: currentData.r7,
+          r10: currentData.r10,
+          time: currentData.time
+        };
+      }
+      if (expFuture && futureData.length > 0) {
+        data.futureData = futureData.map(fd => ({
+          lat: fd.lat,
+          lng: fd.lng,
+          intensity: fd.intensity,
+          r7: fd.r7,
+          r10: fd.r10,
+          errorRadius: fd.errorRadius,
+          time: fd.time,
+          showSymbol: fd.showSymbol,
+          showWind: fd.showWind,
+          showError: fd.showError
+        }));
+      }
+      if (expError && errorPolygon) {
+        data.errorPolygon = errorPolygon.getLatLngs()[0].map(p => [p.lat, p.lng]);
+      }
+      if (expWarning && warningPolygon) {
+        data.warningPolygon = warningPolygon.getLatLngs()[0].map(p => [p.lat, p.lng]);
+      }
+
+      if (Object.keys(data).length === 0) {
+        alert("未勾選任何項目，無法匯出。");
+        return;
+      }
+
+      downloadJSON(data, "typhoon_selected.json");
+    }
+
+    /********************************************
+     *  (B) 一次匯出全部 JSON
+     ********************************************/
+    function exportAllJSON() {
+      const data = {
+        pastPoints,
+        currentData: currentData
+          ? {
+              lat: currentData.lat,
+              lng: currentData.lng,
+              intensity: currentData.intensity,
+              r7: currentData.r7,
+              r10: currentData.r10,
+              time: currentData.time
+            }
+          : null,
+        futureData: futureData.map(fd => ({
+          lat: fd.lat,
+          lng: fd.lng,
+          intensity: fd.intensity,
+          r7: fd.r7,
+          r10: fd.r10,
+          errorRadius: fd.errorRadius,
+          time: fd.time,
+          showSymbol: fd.showSymbol,
+          showWind: fd.showWind,
+          showError: fd.showError
+        })),
+        errorPolygon: errorPolygon
+          ? errorPolygon.getLatLngs()[0].map((p) => [p.lat, p.lng])
+          : [],
+        warningPolygon: warningPolygon
+          ? warningPolygon.getLatLngs()[0].map((p) => [p.lat, p.lng])
+          : []
+      };
+      downloadJSON(data, "typhoon_data_all.json");
+    }
+
+    // 下載 JSON 小工具
+    function downloadJSON(obj, filename) {
+      const jsonStr = JSON.stringify(obj, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    /********************************************
+     *           (C) 匯入 JSON 檔案
+     ********************************************/
+    function importData() {
+      const fileInput = document.getElementById("importFile");
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert("請先選擇檔案");
+        return;
+      }
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const json = JSON.parse(e.target.result);
+
+          // 根據需求匯入
+          if (json.pastPoints) {
+            pastPoints = json.pastPoints;
+            renderPastList();
+          }
+          if (json.warningPolygon && json.warningPolygon.length >= 3) {
+            if (warningPolygon) map.removeLayer(warningPolygon);
+            warningVertices = json.warningPolygon.map(x => L.latLng(x[0], x[1]));
+            warningPolygon = L.polygon(warningVertices, {
+              fillColor: "red",
+              fillOpacity: 0.2,
+              stroke: false
+            });
+          }
+          // ...可擴充匯入 currentData, futureData, errorPolygon 等
+
+          redrawAll();
+          alert("匯入成功！");
+        } catch (err) {
+          alert("JSON 格式錯誤或解析失敗！");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    /********************************************
+     *           全部重置
+     ********************************************/
+    function resetAll() {
+      if (!confirm("確定要重置所有資料嗎？")) return;
+
+      pastPoints = [];
+      currentData = null;
+      futureData = [];
+
+      if (errorPolygon) {
+        map.removeLayer(errorPolygon);
+        errorPolygon = null;
+      }
+      if (warningPolygon) {
+        map.removeLayer(warningPolygon);
+        warningPolygon = null;
+      }
+      errorVertices = [];
+      warningVertices = [];
+      isDrawingError = false;
+      isDrawingWarning = false;
+
+      // 清空表單
+      document.getElementById("past-lon").value = "";
+      document.getElementById("past-lat").value = "";
+      document.getElementById("past-list").innerHTML = "";
+
+      document.getElementById("current-lon").value = "";
+      document.getElementById("current-lat").value = "";
+      document.getElementById("current-intensity").value = "TD";
+      document.getElementById("current-r7").value = "";
+      document.getElementById("current-r10").value = "";
+      document.getElementById("current-time").value = "";
+
+      document.getElementById("future-container").innerHTML = "";
+      document.getElementById("importFile").value = "";
+
+      redrawAll();
+    }
+  </script>
 </body>
 </html>
-
-
-
