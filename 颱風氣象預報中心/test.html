@@ -3,198 +3,255 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>即時／歷史閃電雷達 | 颱風氣象中心</title>
+<title>短時累積雨量 | 颱風氣象中心</title>
 
-<!-- ===== 全站共用樣式 ===== -->
+<!-- ========= 共通樣式 ========= -->
 <style>
 :root{--primary:#174287;--bg:#f6f8fb;--surface:#fff;--text:#333;--sub:#555;--divider:#dfe3ea;}
 *,*::before,*::after{box-sizing:border-box;}
-body,h1,h2,p,ul,li{margin:0;padding:0;}ul{list-style:none;}a{text-decoration:none;color:inherit;}
-body{font-family:"Noto Sans TC","Segoe UI",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.65;}
-main{max-width:1100px;margin:96px auto 0;padding:0 1rem 4rem;}
+body,h1,h2,p,ul,li{margin:0;padding:0;} ul{list-style:none;} a{text-decoration:none;color:inherit;}
+body{font-family:"Noto Sans TC","Segoe UI",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);}
+main{max-width:1150px;margin:96px auto 0;padding:0 1rem 4rem;}
 
-/* header / nav */
-header{position:fixed;inset:0 0 auto;background:var(--primary);box-shadow:0 2px 7px rgba(0,0,0,.18);z-index:999;}
-.nav-wrap{max-width:1100px;margin:0 auto;padding:.8rem 1rem;display:flex;justify-content:space-between;align-items:center;}
-.logo{color:#fff;font-size:1.3rem;font-weight:700;}
-.nav-links{display:flex;gap:1.2rem;}
+header{position:fixed;top:0;left:0;right:0;background:var(--primary);box-shadow:0 2px 6px rgba(0,0,0,.18);z-index:999;}
+.nav-wrap{max-width:1150px;margin:0 auto;padding:.85rem 1rem;display:flex;align-items:center;justify-content:space-between;}
+.logo{color:#fff;font-weight:700;font-size:1.25rem;}
+.nav-links{display:flex;gap:1.15rem;}
 .nav-item{position:relative;}
-.nav-link{color:#fff;font-weight:600;padding:.25rem 0;}
+.nav-link{color:#fff;font-weight:600;padding:.2rem 0;}
 .nav-link:hover{opacity:.85;}
-.dropdown{position:absolute;top:calc(100% + 8px);left:0;background:var(--surface);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.1);padding:.75rem 0;display:none;flex-direction:column;min-width:200px;}
-.dropdown a{padding:.45rem 1.25rem;font-size:.93rem;color:var(--text);}
-.dropdown a:hover{background:rgba(23,66,135,.07);}
+.dropdown{position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.1);padding:.75rem 0;display:none;flex-direction:column;min-width:220px;}
+.dropdown a{padding:.48rem 1.3rem;font-size:.93rem;color:var(--text);}
+.dropdown a:hover{background:rgba(23,66,135,.08);}
 .dropdown.show{display:flex;}
 
-/* burger & drawer */
 .burger{display:none;width:24px;height:18px;flex-direction:column;justify-content:space-between;cursor:pointer;}
 .burger span{display:block;height:3px;background:#fff;border-radius:1.5px;}
-.drawer{position:fixed;right:0;top:0;bottom:0;width:260px;background:#fff;box-shadow:-2px 0 10px rgba(0,0,0,.15);transform:translateX(100%);transition:.3s;z-index:998;display:flex;flex-direction:column;overflow-y:auto;}
+
+.drawer{position:fixed;right:0;top:0;bottom:0;width:260px;background:#fff;transform:translateX(100%);transition:.3s;z-index:998;box-shadow:-2px 0 10px rgba(0,0,0,.15);display:flex;flex-direction:column;overflow-y:auto;}
 .drawer.open{transform:translateX(0);}
-.drawer a{padding:.8rem 1.3rem;border-bottom:1px solid var(--divider);}
+.drawer a{padding:.85rem 1.25rem;border-bottom:1px solid var(--divider);}
 .drawer a.toggle{font-weight:600;background:var(--bg);}
 .drawer .dropdown{position:static;transform:none;box-shadow:none;border-radius:0;padding:0;}
-
-/* section & controls */
+/* section + grid */
 section{padding:3.5rem 0;border-bottom:1px solid var(--divider);}
-h1{font-size:1.9rem;text-align:center;color:var(--primary);}
-h2{font-size:1.35rem;margin:2.3rem 0 .9rem;color:var(--primary);}
-.control{margin-top:1rem;display:flex;flex-wrap:wrap;gap:.8rem;justify-content:center;align-items:center;}
-.control label{font-weight:600;color:var(--primary);}
-.control input,.control select{padding:.4rem .6rem;border:1px solid var(--divider);border-radius:6px;font-size:.95rem;}
-.control button{border:none;border-radius:6px;font-weight:600;padding:.5rem 1.2rem;cursor:pointer;color:#fff;}
-#loadBtn{background:var(--primary);} #playBtn{background:#de6b00;} #stopBtn{background:#666;display:none;} #latestBtn{background:#999;}
+h1{text-align:center;font-size:1.9rem;color:var(--primary);}
+h2{font-size:1.35rem;margin:1.8rem 0 .8rem;color:var(--primary);}
+.grid-4,.grid-5{display:grid;gap:0;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-5{grid-template-columns:repeat(5,1fr);}
+img{width:100%;height:auto;display:block;}
+figcaption{font-size:.9rem;text-align:center;color:var(--sub);margin-top:.25rem;}
+/* 去掉 grid 最右邊分隔線 － 用 border-right 作分隔 */
+figure{position:relative;}
+figure:not(:last-child)::after{content:'';position:absolute;top:0;right:0;width:1px;height:100%;background:var(--divider);}
 
-.viewer{display:flex;justify-content:center;margin-top:1.5rem;}
-.viewer img{max-width:100%;max-height:600px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+footer{padding:3rem 1rem 1.5rem;text-align:center;color:#777;font-size:.88rem;}
+/* 內容示範 */
+h1{text-align:center;margin-top:1.5rem;font-size:1.9rem;color:var(--primary);}
 
-@media(max-width:768px){.nav-links{display:none}.burger{display:flex}}
-footer{padding:3rem 1rem 1.5rem;text-align:center;color:#777;font-size:.9rem;}
+@media(max-width:768px){
+  .nav-links{display:none;}
+  .burger{display:flex;}
+}
 </style>
 </head>
-
 <body>
-<!-- ===== Header ===== -->
+
+<!-- ========== 導覽列（桌機＋手機抽屜） ========== -->
 <header>
   <nav class="nav-wrap">
     <div class="logo">颱風氣象中心</div>
-    <ul class="nav-links">
+
+    <ul class="nav-links"><!-- 桌機導覽 -->
       <li class="nav-item"><a class="nav-link" href="index.html">首頁</a></li>
-      <li class="nav-item"><a class="nav-link" href="javascript:;" data-target="sat">衛星雲圖 ▾</a>
-        <div class="dropdown" id="sat"><a href="satellite.html">衛星雲圖</a></div>
+
+      <li class="nav-item">
+        <a class="nav-link" href="javascript:;" data-target="ty">颱風資訊 ▾</a>
+        <div class="dropdown" id="ty">
+          <a href="typhoon.html">系統定位</a><a href="http://www.typhoon2000.ph/multi/?name=NEPARTAK">各國路徑</a><a href="agency.html">各國系集</a>
+          <a href="cwa.html">台灣路徑</a><a href="https://www.jma.go.jp/bosai/map.html#3/29.688/145.195/&elem=root&typhoon=all&contents=typhoon">日本路徑</a>
+          <a href="http://typhoon.weather.com.cn/">中國路徑</a><a href="https://www.kma.go.kr/chn/weather/typoon/typhoon_5days.jsp">韓國路徑</a>
+          <a href="https://www.hko.gov.hk/tc/wxinfo/currwx/tc_gis.htm">香港路徑</a><a href="https://www.metoc.navy.mil/jtwc/jtwc.html">美軍路徑</a>
+        </div>
       </li>
-      <li class="nav-item"><a class="nav-link" href="javascript:;" data-target="rad">雷達迴波 ▾</a>
-        <div class="dropdown" id="rad"><a href="rain.html">雷達迴波</a></div>
+
+      <li class="nav-item">
+        <a class="nav-link" href="javascript:;" data-target="warning">颱風警報 ▾</a>
+        <div class="dropdown" id="warning">
+          <a href="ty.html">颱風警報</a><a href="tywind.html">風力預報</a><a href="tyrain.html">雨量預報</a>
+        </div>
       </li>
-      <li class="nav-item"><a class="nav-link" href="javascript:;" data-target="ltg">即時閃電 ▾</a>
-        <div class="dropdown" id="ltg"><a href="none.html">即時閃電</a></div>
+
+      <li class="nav-item"><a class="nav-link" href="east.html">衛星雲圖</a></li>
+
+      <li class="nav-item">
+        <a class="nav-link" href="javascript:;" data-target="radar">迴波閃電 ▾</a>
+        <div class="dropdown" id="radar">
+          <a href="none.html">即時閃電</a><a href="rain.html">雷達迴波</a>
+          <a href="https://www.cwa.gov.tw/V8/C/W/OBS_Radar_rain.html">降雨雷達</a>
+        </div>
+      </li>
+
+      <!-- ↓ 其餘大項同樣格式 … -->
+      <!-- 降雨資訊 -->
+      <li class="nav-item">
+        <a class="nav-link" href="javascript:;" data-target="rain">降雨資訊 ▾</a>
+        <div class="dropdown" id="rain"><a href="mmr.html">降雨預報</a><a href="mm.html">累積雨量</a></div>
+      </li>
+
+      <!-- 氣象觀測 -->
+      <li class="nav-item">
+        <a class="nav-link" href="javascript:;" data-target="wind">氣象觀測 ▾</a>
+        <div class="dropdown" id="wind">
+          <a href="wind.html">風力觀測</a><a href="mm.html">累積雨量</a><a href="wind3.html">氣溫觀測</a><a href="wind4.html">紫外線觀測</a>
+        </div>
+      </li>
+
+      <!-- 天氣圖資 -->
+      <li class="nav-item">
+        <a class="nav-link" href="javascript:;" data-target="weather">天氣圖資 ▾</a>
+        <div class="dropdown" id="weather">
+          <a href="weather.html">最新天氣圖</a><a href="fweather.html">一週天氣圖</a><a href="tropic1.html">駛流場圖</a>
+          <a href="tropic2.html">相對窩度</a><a href="tropic3.html">垂直風切</a><a href="tropic4.html">氣層風場</a>
+          <a href="tropic5.html">高層福散</a><a href="tropic6.html">海溫觀測</a>
+        </div>
+      </li>
+
+      <!-- 路徑系集 -->
+      <li class="nav-item">
+        <a class="nav-link" href="javascript:;" data-target="ens">路徑系集 ▾</a>
+        <div class="dropdown" id="ens">
+          <a href="agency.html">各國系集</a><a href="https://www.ecmwf.int/en/forecasts/charts">ECMWH(1)</a>
+          <a href="https://www.easterlywave.com/typhoon/ensemble/">ECMWH(2)</a><a href="ECMWH.html">ECMWH</a>
+          <a href="https://www.weathernerds.org/tc_guidance/">GFS</a><a href="https://npd.cwa.gov.tw/">CWA(新)</a>
+          <a href="https://npd1.cwa.gov.tw/NPD/products_display/product?menu_index=0">CWA(舊)</a><a href="cwaty.html">CWA(颱風)</a>
+        </div>
+      </li>
+
+      <!-- 常用 -->
+      <li class="nav-item">
+        <a class="nav-link" href="javascript:;" data-target="common">常用網頁 ▾</a>
+        <div class="dropdown" id="common">
+          <a href="https://watch.ncdr.nat.gov.tw/watch_tracks_plot">NCDR</a>
+          <a href="https://qpeplus.cwa.gov.tw/pub/">QPlus</a>
+          <a href="https://www.windy.com/">Windy</a>
+          <a href="https://www.tropicaltidbits.com/storminfo/">Tropical Tidbits</a>
+          <a href="https://watch.ncdr.nat.gov.tw/watch_tracks_pro">路徑製圖</a>
+          <a href="draw.html">路徑製圖(專屬)</a>
+        </div>
       </li>
     </ul>
+
+    <!-- 漢堡 -->
     <div class="burger" id="burger"><span></span><span></span><span></span></div>
   </nav>
 </header>
 
-<!-- ===== Drawer (mobile) ===== -->
+<!-- ========= Drawer (Mobile) ========= -->
 <aside class="drawer" id="drawer">
   <a href="index.html">首頁</a>
-  <a class="toggle" data-target="d-sat" href="javascript:;">衛星雲圖 ▼</a>
-  <div class="dropdown" id="d-sat"><a href="satellite.html">衛星雲圖</a></div>
-  <a class="toggle" data-target="d-rad" href="javascript:;">雷達迴波 ▼</a>
-  <div class="dropdown" id="d-rad"><a href="rain.html">雷達迴波</a></div>
-  <a class="toggle" data-target="d-ltg" href="javascript:;">即時閃電 ▼</a>
-  <div class="dropdown" id="d-ltg"><a href="none.html">即時閃電</a></div>
+
+  <!-- 颱風 -->
+  <a class="toggle" href="javascript:;" data-target="d-ty">颱風資訊 ▼</a>
+  <div class="dropdown" id="d-ty">
+    <!-- 子連結與桌機一致 -->
+    <a href="typhoon.html">系統定位</a><a href="http://www.typhoon2000.ph/multi/?name=NEPARTAK">各國路徑</a><a href="agency.html">各國系集</a>
+    <a href="cwa.html">台灣路徑</a><a href="https://www.jma.go.jp/bosai/map.html#3/29.688/145.195/&elem=root&typhoon=all&contents=typhoon">日本路徑</a>
+    <a href="http://typhoon.weather.com.cn/">中國路徑</a><a href="https://www.kma.go.kr/chn/weather/typoon/typhoon_5days.jsp">韓國路徑</a>
+    <a href="https://www.hko.gov.hk/tc/wxinfo/currwx/tc_gis.htm">香港路徑</a><a href="https://www.metoc.navy.mil/jtwc/jtwc.html">美軍路徑</a>
+  </div>
+
+  <!-- 以下同樣複製桌機內容 …（warning / radar / rain / wind / weather / ens / common） -->
+  <!-- 示範再放一項 -->
+  <a class="toggle" href="javascript:;" data-target="d-rain">降雨資訊 ▼</a>
+  <div class="dropdown" id="d-rain"><a href="mmr.html">降雨預報</a><a href="mm.html">累積雨量</a></div>
 </aside>
 
-<!-- ===== Main ===== -->
-<main>
-  <section>
-    <h1>即時／歷史閃電圖</h1>
+<!-- ========= 內容示範 ========= -->
+<main><h1>短時累積雨量預報</h1>
 
-    <div class="control">
-      <label for="datePick">日期</label><input type="date" id="datePick">
-      <label for="timePick">時刻</label><select id="timePick"></select>
-      <button id="loadBtn">載入影像</button>
-      <button id="playBtn">播放動畫</button>
-      <button id="stopBtn">停止</button>
-      <button id="latestBtn">最新閃電</button>
-    </div>
+    <!-- 手機模型切換選單 -->
+    <select id="modelSel" class="model-ctrl" style="display:none">
+      <option value="qpf">中央氣象署 ─ 48 h 預報</option>
+      <option value="krid">NCDR雨量預報 (CWA)</option>
+      <option value="gauge">NCDR雨量預報</option>
+    </select>
+  
+    <!-- ---- 模型 1：QPF ---- -->
+    <section id="qpf" class="model-block">
+      <h2>中央氣象署 ─ 48 h 預報</h2>
+      <div class="grid-4">
+        <figure><img src="https://www.cwa.gov.tw/Data/fcst_img/QPF_ChFcstPrecip_12_12.png"><figcaption>0-12 h</figcaption></figure>
+        <figure><img src="https://www.cwa.gov.tw/Data/fcst_img/QPF_ChFcstPrecip_12_24.png"><figcaption>12-24 h</figcaption></figure>
+        <figure><img src="https://www.cwa.gov.tw/Data/fcst_img/QPF_ChFcstPrecip_12_36.png"><figcaption>24-36 h</figcaption></figure>
+        <figure><img src="https://www.cwa.gov.tw/Data/fcst_img/QPF_ChFcstPrecip_12_48.png"><figcaption>36-48 h</figcaption></figure>
+      </div>
+    </section>
+  
+    <!-- ---- 模型 2：KRIDMAP ---- -->
+    <section id="krid" class="model-block">
+      <h2>NCDR雨量預報 (CWA)</h2>
+      <div class="grid-5" id="gridK"></div>
+    </section>
+  
+    <!-- ---- 模型 3：RAINGAUGE ---- -->
+    <section id="gauge" class="model-block">
+      <h2>NCDR雨量預報</h2>
+      <div class="grid-5" id="gridG"></div>
+    </section></main>
 
-    <div class="viewer" id="viewer"></div>
-  </section>
-</main>
-
-<footer>Copyright © 2023 颱風氣象預報中心</footer>
-
-<!-- ===== JavaScript ===== -->
+<!-- ========= 導覽互動 ========= -->
 <script>
-/* ─ Dropdown & Drawer ─ */
-document.querySelectorAll('.nav-link[data-target]').forEach(a=>{
-  a.onclick=e=>{
+/* --- 桌機下拉 --- */
+document.querySelectorAll('.nav-link[data-target]').forEach(link=>{
+  link.onclick=e=>{
     const box=document.getElementById(e.currentTarget.dataset.target);
     document.querySelectorAll('.dropdown.show').forEach(d=>d!==box&&d.classList.remove('show'));
     box.classList.toggle('show');
   };
 });
+
+/* --- 漢堡/Drawer --- */
 const burger=document.getElementById('burger'),drawer=document.getElementById('drawer');
 burger.onclick=()=>drawer.classList.toggle('open');
+
+/* Drawer 展開子選單 */
 drawer.onclick=e=>{
-  const t=e.target.closest('.toggle');if(!t)return;
+  const t=e.target.closest('.toggle'); if(!t) return;
   const box=drawer.querySelector('#'+t.dataset.target);
   drawer.querySelectorAll('.dropdown').forEach(d=>d!==box&&d.classList.remove('show'));
   box.classList.toggle('show');
 };
+/* === 手機選單顯示判定 === */
+if(innerWidth<769) document.getElementById('modelSel').style.display='block';
 
-/* ─ 台北時間 & 工具 ─ */
-function nowTW(){return new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));}
-function ymd(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
-function timestamp(date,time){return date.replace(/-/g,'')+time.replace('-','')+"00";}  // yyyyMMddHHmm00
+/* === 時間戳 === */
+function twNow(){return new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));}
+function ymd(d){return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;}
+function hm10(d){return `${String(d.getHours()).padStart(2,'0')}${String(Math.floor(d.getMinutes()/10)*10).padStart(2,'0')}`;}
 
-/* ─ 時刻下拉 (5 分鐘粒度) ─ */
-const timeSel=document.getElementById('timePick');
-for(let h=0;h<24;h++){for(let m=0;m<60;m+=5){
-  const v=`${String(h).padStart(2,'0')}-${String(m).padStart(2,'0')}`;
-  timeSel.add(new Option(v.replace('-',':'),v));
-}}
-(function initDT(){
-  const tw=nowTW();
-  document.getElementById('datePick').value=ymd(tw);
-  const minute=Math.floor(tw.getMinutes()/5)*5;
-  timeSel.value=`${String(tw.getHours()).padStart(2,'0')}-${String(minute).padStart(2,'0')}`;
-})();
+const stampK=(()=>{const d=new Date(twNow().getTime()-22*60000);return ymd(d)+hm10(d);})();
+const stampG=(()=>{const d=new Date(twNow().getTime()-18*60000);return ymd(d)+hm10(d);})();
 
-/* ─ 影像 URL ─ */
-function ltgUrl(stamp){return `https://www.cwa.gov.tw/Data/lightning/${stamp}_lgtl.jpg`;}
-
-/* ─ 最新 stamp (現在 -2 分 → 四捨五入至前 5 分) ─ */
-function latestStamp(){
-  const d=new Date(nowTW().getTime()-2*60000);
-  d.setMinutes(Math.floor(d.getMinutes()/5)*5,0,0);
-  return timestamp(ymd(d),`${String(d.getHours()).padStart(2,'0')}-${String(d.getMinutes()).padStart(2,'0')}`);
+/* === 動態插圖 === */
+const dur=['01','03','06','12','24'];
+function fill(id,prefix,stamp){
+  dur.forEach(d=>{
+    document.getElementById(id).insertAdjacentHTML('beforeend',
+      `<figure><img src="https://watch.ncdr.nat.gov.tw/00_Wxmap/images/${prefix+d+'_'+stamp}.png"><figcaption>${d} h</figcaption></figure>`);
+  });
 }
+fill('gridK','kridmap_',stampK);
+fill('gridG','raingauge_',stampG);
 
-/* ─ 渲染 ─ */
-const viewer=document.getElementById('viewer');
-function show(stamp){
-  viewer.innerHTML=`<img src="${ltgUrl(stamp)}" class="radar-img" alt="閃電圖">`;
+/* === 手機模型切換 === */
+if(innerWidth<769){
+  const sel=document.getElementById('modelSel');
+  const blocks={'qpf':document.getElementById('qpf'),'krid':document.getElementById('krid'),'gauge':document.getElementById('gauge')};
+  function show(key){Object.values(blocks).forEach(b=>b.style.display='none');blocks[key].style.display='block';}
+  show('qpf'); sel.onchange=e=>show(e.target.value);
 }
-show(latestStamp());
-
-/* ─ 按鈕 ─ */
-document.getElementById('loadBtn').onclick=()=>{
-  const d=document.getElementById('datePick').value,t=timeSel.value;
-  if(!d){alert('請選日期');return;}
-  stopAnim(); show(timestamp(d,t));
-};
-document.getElementById('latestBtn').onclick=()=>{stopAnim();show(latestStamp());};
-
-/* ─ 動畫 ─ */
-let frames=[],idx=0,timer=null;
-const playBtn=document.getElementById('playBtn'),stopBtn=document.getElementById('stopBtn');
-function buildFrames(startStamp){
-  const sy=parseInt(startStamp.slice(0,4)),sm=parseInt(startStamp.slice(4,6))-1,
-        sd=parseInt(startStamp.slice(6,8)),sh=parseInt(startStamp.slice(8,10)),
-        smin=parseInt(startStamp.slice(10,12));
-  const start=new Date(sy,sm,sd,sh,smin);
-  const endStamp=latestStamp();
-  const ey=parseInt(endStamp.slice(0,4)),em=parseInt(endStamp.slice(4,6))-1,
-        ed=parseInt(endStamp.slice(6,8)),eh=parseInt(endStamp.slice(8,10)),
-        emin=parseInt(endStamp.slice(10,12));
-  const end=new Date(ey,em,ed,eh,emin);
-  const arr=[];
-  for(let d=new Date(start);d<=end;d.setMinutes(d.getMinutes()+5)){
-    arr.push(timestamp(ymd(d),`${String(d.getHours()).padStart(2,'0')}-${String(d.getMinutes()).padStart(2,'0')}`));
-  }
-  return arr;
-}
-function playAnim(){
-  const d=document.getElementById('datePick').value,t=timeSel.value;
-  if(!d){alert('請選起始時間');return;}
-  frames=buildFrames(timestamp(d,t)); idx=0;
-  playBtn.disabled=true; stopBtn.style.display='inline-block';
-  timer=setInterval(()=>{show(frames[idx]);idx=(idx+1)%frames.length;},200);
-}
-function stopAnim(){clearInterval(timer);timer=null;playBtn.disabled=false;stopBtn.style.display='none';}
-playBtn.onclick=playAnim; stopBtn.onclick=stopAnim;
 </script>
 </body>
 </html>
