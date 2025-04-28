@@ -50,10 +50,29 @@ footer{padding:3rem 1rem 1.5rem;text-align:center;color:#777;font-size:.88rem;}
 /* 內容示範 */
 h1{text-align:center;margin-top:1.5rem;font-size:1.9rem;color:var(--primary);}
 
+/* ========= 行動裝置專用 ========= */
 @media(max-width:768px){
-  .nav-links{display:none;}
-  .burger{display:flex;}
+
+/* 導覽列：桌機→隱藏，漢堡顯示（與原本一致） */
+.nav-links{display:none;}
+.burger{display:flex;}
+
+/* 圖片排版：讓每張最少 260px，可自動換行、靠齊 */
+.grid-4,
+.grid-5{
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); /* 260px≈半螢幕 */
+  gap:0;                              /* 仍然零間距 */
 }
+
+/* 去掉 figure 之間的垂直分隔線（改用下邊框較好看） */
+figure::after{display:none;}
+figure{border-bottom:1px solid var(--divider);}
+figure:last-child{border-bottom:none;}           /* 最後一張不要線 */
+
+/* 圖片顯示區塊一次只呈現一種模型（下拉切換） – 你現有 JS 已處理 */
+.model-ctrl{display:block;margin:1rem auto 0;max-width:280px;}
+}
+
 </style>
 </head>
 <body>
