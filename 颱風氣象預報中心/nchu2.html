@@ -23,6 +23,9 @@
     .stat-card code{background:#eef1f6;border-radius:4px;padding:1px 4px;}
     .formula{color:#555;}
     .value{font-weight:600;}
+    .good{color:#198754;font-weight:700;}
+.bad{color:#dc3545;font-weight:700;}
+
 
     /* 圖表區 */
     #chartsContainer .col-md-6{padding:1rem;}
@@ -98,9 +101,9 @@
   const timeToSec = str => {const [h,m,s]=str.split(':').map(Number);return h*3600+m*60+s;};
 
   /* ---------- 共用 badge／explain ---------- */
-  const badge   = ok => ok ? '<span class="badge bg-success">符合</span>' : '<span class="badge bg-danger">不符合</span>';
-  const explain = ok => ok ? 'p ≥ 0.05，無法拒絕指數分布 → 視為符合'
-                           : 'p < 0.05，拒絕指數分布 → 不符合';
+  const badge   = ok => ok ? '<span class="badge bg-success">符合指數分布</span>' : '<span class="badge bg-danger">不符合指數分布</span>';
+  const explain = ok => ok ? 'p ≥ 0.05，無法拒絕指數分布 → <span class="good">視為符合</span>'
+                           : 'p < 0.05，拒絕指數分布 → <span class="bad">不符合</span>';
 
   /* ---------- 新增列 ---------- */
   function addRow(){
@@ -156,30 +159,67 @@
            lam};
   }
 
-  /* ---------- 直方圖 ---------- */
+  /* ---------- 直方圖 + 指數理論線 ---------- */
   let arrChart,svcChart;
-  function hist(id,title,data){
-    const col=document.createElement('div');col.className='col-md-6';
-    const cvs=document.createElement('canvas');cvs.id=id;col.appendChild(cvs);
-    document.getElementById('chartsContainer').appendChild(col);
-    const min=Math.min(...data),max=Math.max(...data);
-    const bins=Math.max(5,Math.ceil(Math.sqrt(data.length)));
-    const size=(max-min)/bins||1,freq=Array(bins).fill(0);
-    data.forEach(v=>{
-      const i=Math.min(bins-1,Math.floor((v-min)/size));
-      freq[i]++;
-    });
-    const labels=freq.map((_,i)=>
-      `${(min+i*size).toFixed(2)}-${(min+(i+1)*size).toFixed(2)}`);
-    return new Chart(cvs,{
-      type:'bar',
-      data:{labels,datasets:[{data:freq,barPercentage:1}]},
-      options:{
-        plugins:{title:{display:true,text:title},legend:{display:false}},
-        scales:{y:{beginAtZero:true}}
-      }
-    });
+  function hist(id, title, data, lambda) {
+  const col = document.createElement('div');
+  col.className = 'col-md-6';
+  const cvs = document.createElement('canvas');
+  cvs.id = id;
+  col.appendChild(cvs);
+  document.getElementById('chartsContainer').appendChild(col);
+
+  const n = data.length,
+        min = Math.min(...data),
+        max = Math.max(...data),
+        bins = Math.max(6, Math.ceil(Math.sqrt(n))),
+        size = (max - min) / bins || 1,
+        bars = [],
+        centers = [];
+
+  /* 實際次數 */
+  for (let i = 0; i < bins; i++) bars[i] = 0;
+  data.forEach(v => {
+    const k = Math.min(bins - 1, Math.floor((v - min) / size));
+    bars[k]++;
+  });
+
+  /* 把柱心當作 x，方便與理論曲線對齊 */
+  for (let i = 0; i < bins; i++) centers[i] = min + (i + .5) * size;
+
+  /* 理論曲線：pdf = λe^{-λx}，轉成期望次數 = n·pdf·Δx */
+  const pdfData = [];
+  const step = (max - min) / 60;          // 曲線 60 個點
+  for (let x = min; x <= max; x += step) {
+    const y = n * lambda * Math.exp(-lambda * x) * size;
+    pdfData.push({ x, y });
   }
+
+  new Chart(cvs, {
+    type: 'scatter',                      // 組合圖
+    data: {
+      datasets: [
+        { type: 'bar',
+          label: '實際',
+          data: centers.map((x, i) => ({ x, y: bars[i] })),
+          barPercentage: 1 },
+        { type: 'line',
+          label: '指數理論',
+          data: pdfData,
+          borderWidth: 2,
+          fill: false,
+          tension: 0.3 }
+      ]
+    },
+    options: {
+      plugins: { title: { display: true, text: title } },
+      scales: {
+        x: { type: 'linear', title: { display: true, text: '分鐘' } },
+        y: { beginAtZero: true, title: { display: true, text: '次數' } }
+      }
+    }
+  });
+}
 
   /* ---------- 計算 ---------- */
   function compute(){
@@ -201,16 +241,20 @@
     const rho=lam/(S*mu);
     const box=document.getElementById('metrics');box.classList.remove('d-none');
     if(rho>=1){
-      box.innerHTML=
-        `<div class="alert alert-danger"><strong>⚠ 系統超載，排隊時間過長，服務無法負荷！</strong><br>
-          ρ = ${to4(rho)} (>1)。最少需 S ≥ ${Math.ceil(lam/mu)} 才能穩定。
-         </div>`;
+      box.innerHTML=`
+        <div class="alert alert-danger"><strong>⚠ 系統超載，排隊時間過長，服務無法負荷！</strong><br>
+         ρ = ${to4(rho)} (>1)。最少需 S ≥ ${Math.ceil(lam/mu)} 才能穩定。
+        </div>`;
       return;
     }
 
     /* 指數檢定 */
     const ksI=ksExp(interMin),ksS=ksExp(serviceMin);
     const expOK=ksI.ok&&ksS.ok;
+    /* 變異係數判斷函式 */
+const cvExplain = cv =>
+  Math.abs(cv - 1) < 0.2 ? '接近 1 ➜ <span class="good">支持指數分布</span>' : '遠離 1 ➜ <span class="bad">可能偏離指數分布</span>';
+
 
     /* Lq 等 */
     let method,Lq,P0,formulaStr,P0detail;
@@ -228,9 +272,8 @@
         Lq=P0*Math.pow(lam/mu,S)*rho/(factorial(S)*Math.pow(1-rho,2));
       }
     }else{
-      /* Kingman 近似 (G/G/S) */
       method='Kingman 近似 (G/G/S)';
-      const alpha=Math.sqrt(2*(S+1));           // √(2(S+1))
+      const alpha=Math.sqrt(2*(S+1));
       formulaStr=
         `(ρ^√(2(S+1)) / (1−ρ)) × ((Cₐ²+Cₛ²)/2) = `
         + `( ${to4(rho)}^${to4(alpha)} ÷ (1−${to4(rho)}) × `
@@ -241,7 +284,7 @@
 
     const Ls=Lq+lam/mu,Wq=Lq/lam,Ws=Ls/lam;
 
-    /* －－ 人力建議 －－ */
+    /* 人力建議 */
     let suggestion, reason;
     if(rho > 0.85 || Wq > 1){
       suggestion = '建議「增加」服務人員';
@@ -258,13 +301,26 @@
     box.innerHTML=`
       <h4 class="mb-3">${method} Performance</h4>
 
-      <p><strong>到達分布</strong> KS：${ksI.msg} ${badge(ksI.ok)} — ${explain(ksI.ok)}<br>
-         <span class="formula">平均到達時間ȳ<sub>a</sub> = </span><span class="value">${to4(mI)}</span>，
-         <span class="formula">到達時間標準差σ<sub>a</sub> = </span><span class="value">${to4(sdI)}</span></p>
+      <!-- － 驗證步驟 ＆ 分布說明（依序：平均/σ → KS → CV → 結論）－ -->
+<p><strong>驗證步驟：</strong><br>
+&nbsp;&nbsp;1️⃣ 先以直方圖疊加指數理論曲線做 <strong>視覺檢查</strong><br>
+&nbsp;&nbsp;2️⃣ 使用 <strong>Kolmogorov-Smirnov (KS) 檢定</strong> 驗證<br>
+&nbsp;&nbsp;3️⃣ 以 <strong>變異係數 CV (= σ/ȳ)</strong> 快速檢核（指數理論 CV＝1）</p>
 
-      <p><strong>服務分布</strong> KS：${ksS.msg} ${badge(ksS.ok)} — ${explain(ksS.ok)}<br>
-         <span class="formula">平均服務時間ȳ<sub>s</sub> = </span><span class="value">${to4(mS)}</span>，
-         <span class="formula">服務時間標準差σ<sub>s</sub> = </span><span class="value">${to4(sdS)}</span></p>
+<!-- 1. 到達分布 -->
+<p><strong>1. 到達分布</strong><br>
+平均到達時間 ȳ<sub>a</sub> = ${to4(mI)}，標準差 σ<sub>a</sub> = ${to4(sdI)}<br>
+驗證法一 (KS)：${ksI.msg}  — ${explain(ksI.ok)}<br>
+驗證法二 (CV)：${to4(CvA)} → ${cvExplain(CvA)}<br>
+驗證結果：${badge(ksI.ok)}</p>
+
+<!-- 2. 服務分布 -->
+<p><strong>2. 服務分布</strong><br>
+平均服務時間 ȳ<sub>s</sub> = ${to4(mS)}，標準差 σ<sub>s</sub> = ${to4(sdS)}<br>
+驗證法一 (KS)：${ksS.msg}  — ${explain(ksS.ok)}<br>
+驗證法二 (CV)：${to4(CvS)} → ${cvExplain(CvS)}<br>
+驗證結果：${badge(ksS.ok)}</p>
+
 
       <p class="mt-2">
         <code>λ = 1 / ȳ<sub>a</sub> = 1 / ${to4(mI)} = ${to4(lam)} 人╱分</code><br>
@@ -301,14 +357,14 @@
       </div>
     `;
 
-    /* 直方圖 */
+    /* 圖表：先清除，再繪製疊圖 */
     document.getElementById('chartsContainer').innerHTML='';
     if(arrChart)arrChart.destroy();if(svcChart)svcChart.destroy();
-    arrChart=hist('arrHist','到達間隔分布 (min)',interMin);
-    svcChart=hist('svcHist','服務時間分布 (min)',serviceMin);
+    arrChart=hist('arrHist','到達間隔分布 (min)',interMin,lam);
+    svcChart=hist('svcHist','服務時間分布 (min)',serviceMin,mu);
   }
 
-  /* ---------- 匯出 ---------- */
+  /* ---------- 匯出／匯入／綁定（與之前相同，略） ---------- */
   function exportExcel(){
     const wb=XLSX.utils.book_new(),
           data=[["#","Arrival","Leave","Inter(min)(sec)","Service(min)(sec)"]];
@@ -317,8 +373,6 @@
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),'Data');
     XLSX.writeFile(wb,'queue_data.xlsx');
   }
-
-  /* ---------- 匯入 ---------- */
   function importExcel(f){
     const fr=new FileReader();
     fr.onload=e=>{
@@ -341,7 +395,6 @@
     fr.readAsArrayBuffer(f);
   }
 
-  /* ---------- 綁定 ---------- */
   addBtn.addEventListener('click',addRow);
   computeBtn.addEventListener('click',compute);
   exportBtn.addEventListener('click',exportExcel);
