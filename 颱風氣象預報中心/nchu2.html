@@ -97,6 +97,15 @@
   const mean = a => a.reduce((p,c)=>p+c,0)/a.length;
   const std  = a => {const m=mean(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1));};
   const to2  = n => Number.isFinite(n)?(+n).toFixed(2):'∞';
+
+
+  /* ★★★ 新增在這裡 → 任何函式都能用 ★★★ */
+  const fmt2 = n => Number.isFinite(n) ? (+n).toFixed(2) : '∞';   // 兩位小數
+  const fmt4 = n => Number.isFinite(n) ? (+n).toFixed(4) : '∞';   // 四位小數
+
+
+
+
   const factorial = n => n<=1?1:n*factorial(n-1);
   const timeToSec = str => {const [h,m,s]=str.split(':').map(Number);return h*3600+m*60+s;};
 
@@ -144,89 +153,120 @@
 
   /* ---------- KS 檢定 (指數) ---------- */
   function ksExp(arr){
-    const n=arr.length;if(n<2) return{ok:false,msg:'樣本不足',p:0};
-    const s=[...arr].sort((a,b)=>a-b),lam=1/mean(s);let D=0;
-    s.forEach((x,i)=>{
-      const F=1-Math.exp(-lam*x),Fi=(i+1)/n;
-      const d=Math.max(Math.abs(F-Fi),Math.abs(F-i/n));
-      if(d>D)D=d;
-    });
-    let p=0,z=Math.sqrt(n)*D;
-    for(let k=1;k<=100;k++) p+=Math.pow(-1,k-1)*Math.exp(-2*k*k*z*z);
-    return{ok:D<1.36/Math.sqrt(n),
-           msg:`D=${to2(D)}, p=${to2(Math.min(Math.max(2*p,0),1))}`,
-           p:Math.min(Math.max(2*p,0),1),
-           lam};
-  }
+  const n = arr.length;
+  if (n < 2) return { ok:false, msg:'樣本不足', p:0 };
 
-/* ---------- 直方圖 + 指數理論線 (可指定解析度) ---------- */
-let arrChart,svcChart;
-function hist(id, title, data, lambda, resolution = 0.01) {   // ← ★新增參數
-    const col = document.createElement('div');
+  const s = [...arr].sort((a,b)=>a-b),
+        lam = 1 / mean(s);
+  let D = 0;
+  s.forEach((x,i)=>{
+    const F = 1 - Math.exp(-lam * x), Fi = (i + 1) / n;
+    const d = Math.max(Math.abs(F - Fi), Math.abs(F - i / n));
+    if (d > D) D = d;
+  });
+
+  /* p-value 近似 */
+  let p = 0, z = Math.sqrt(n) * D;
+  for (let k = 1; k <= 100; k++)
+    p += Math.pow(-1, k - 1) * Math.exp(-2 * k * k * z * z);
+  p = Math.min(Math.max(2 * p, 0), 1);
+
+  return {
+    ok: D < 1.36 / Math.sqrt(n),
+    msg: `D = ${fmt2(D)},  p = ${fmt4(p)}`,   // ★ 這裡
+    p,
+    lam
+  };
+}
+
+ 
+
+
+/* ---------- 直方圖 + 指數理論線 (可指定解析度；四捨五入分箱) ---------- */
+let arrChart, svcChart;
+function hist(id, title, data, lambda, resolution = 0.01) {
+  /* 建立 canvas --------------------------------------------------------- */
+  const col = document.createElement('div');
   col.className = 'col-md-6';
   const cvs = document.createElement('canvas');
   cvs.id = id;
   col.appendChild(cvs);
   document.getElementById('chartsContainer').appendChild(col);
 
-  /* 依解析度貼齊到最近的 0.01 分 ----------------------- */
-  const binWidth = resolution;                                  // ← ★用解析度當寬度
+  /* 基本參數 ----------------------------------------------------------- */
+  const binWidth = resolution;
   const n   = data.length;
   const min = Math.floor(Math.min(...data) / binWidth) * binWidth;
   const max = Math.ceil (Math.max(...data) / binWidth) * binWidth;
   const bins = Math.round((max - min) / binWidth) + 1;
 
-  /* 統計次數 (同樣寫法) */
-  const bars = Array(bins).fill(0), centers = [];
+  /* 分箱 (四捨五入到最近一格) ------------------------------------------ */
+  const bars = Array(bins).fill(0);
   data.forEach(v => {
-    const k = Math.min(bins - 1, Math.floor((v - min) / binWidth));
+    let k = Math.round((v - min) / binWidth);     // ★ round 而非 floor
+    if (k < 0) k = 0;
+    if (k >= bins) k = bins - 1;
     bars[k]++;
   });
-  for (let i = 0; i < bins; i++) centers[i] = min + (i + 0.5) * binWidth;
 
-  /* 指數理論線 (同樣寫法) */
+  /* 柱心：直接用該格代表值 --------------------------------------------- */
+  const centers = Array.from({ length: bins }, (_, i) =>
+    +(min + i * binWidth).toFixed(4)               // 保留足夠精度
+  );
+
+  /* 指數理論線 --------------------------------------------------------- */
   const pdfData = [];
   for (let x = min; x <= max + 1e-10; x += binWidth) {
     const y = n * lambda * Math.exp(-lambda * x) * binWidth;
     pdfData.push({ x, y });
   }
 
-  /* 畫圖 — 只改 x 軸刻度設定 ----------------------------- */
+  /* 繪圖 --------------------------------------------------------------- */
   new Chart(cvs, {
     data: {
       datasets: [
-        { type: 'bar',
+        {
+          type: 'bar',
           label: '實際',
           data: centers.map((x, i) => ({ x, y: bars[i] })),
           barPercentage: 1,
-          backgroundColor: 'rgba(100,149,237,.6)' },
-        { type: 'line',
+          backgroundColor: 'rgba(100,149,237,.6)'
+        },
+        {
+          type: 'line',
           label: '指數理論',
           data: pdfData,
           borderColor: '#e75480',
           borderWidth: 2,
           fill: false,
-          tension: .3 }
+          tension: 0.3
+        }
       ]
     },
     options: {
-      plugins:{ title:{ display:true, text:title }},
-      scales:{
-        x:{
-          type:'linear',
-          min: min - binWidth / 2,
-          max: max + binWidth / 2,
-          ticks:{
-            stepSize: resolution,            // ← ★每格 0.01
-            callback:v => v.toFixed(2)       // ← ★顯示兩位小數
+      plugins: {
+        title: { display: true, text: title }
+      },
+      scales: {
+        x: {
+          type: 'linear',
+          min: min,
+          max: max + binWidth,
+          ticks: {
+            stepSize: binWidth,
+            callback: v => (+v).toFixed(2)         // 兩位小數顯示
           },
-          title:{ display:true, text:'分鐘' }
+          title: { display: true, text: '分鐘' }
         },
-        y:{ beginAtZero:true, title:{ display:true, text:'次數' } }
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: '次數' }
+        }
       }
     }
   });
 }
+
 
 
 
@@ -243,6 +283,8 @@ function hist(id, title, data, lambda, resolution = 0.01) {   // ← ★新增�
     /* 基本統計 */
     const mI=mean(interMin),sdI=std(interMin);
     const mS=mean(serviceMin),sdS=std(serviceMin);
+    
+
     const CvA = sdI/mI, CvS = sdS/mS;
     const lam=1/mI,mu=1/mS,S=parseInt(serverInput.value)||1;
 
