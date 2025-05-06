@@ -96,7 +96,7 @@
   const fmt  = s => new Date(s*1000).toLocaleTimeString('zh-TW',{hour12:false});
   const mean = a => a.reduce((p,c)=>p+c,0)/a.length;
   const std  = a => {const m=mean(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1));};
-  const to4  = n => Number.isFinite(n)?(+n).toFixed(4):'∞';
+  const to2  = n => Number.isFinite(n)?(+n).toFixed(2):'∞';
   const factorial = n => n<=1?1:n*factorial(n-1);
   const timeToSec = str => {const [h,m,s]=str.split(':').map(Number);return h*3600+m*60+s;};
 
@@ -130,14 +130,14 @@
       const prev=tr.previousElementSibling;
       if(prev&&prev.dataset.arrival){
         const diff=t-prev.dataset.arrival;
-        intTd.textContent=`${to4(diff/60)}(${diff})`;
+        intTd.textContent=`${to2(diff/60)}(${diff})`;
       }
     }else{ // 離開
       const t=now(); tr.dataset.leave=t;
       leaTd.querySelector('span').textContent=fmt(t);
       e.target.remove();
       const diff=t-tr.dataset.arrival;
-      svcTd.textContent=`${to4(diff/60)}(${diff})`;
+      svcTd.textContent=`${to2(diff/60)}(${diff})`;
       if(!tbody.querySelector('.record')){computeBtn.disabled=false;exportBtn.disabled=false;}
     }
   });
@@ -154,72 +154,81 @@
     let p=0,z=Math.sqrt(n)*D;
     for(let k=1;k<=100;k++) p+=Math.pow(-1,k-1)*Math.exp(-2*k*k*z*z);
     return{ok:D<1.36/Math.sqrt(n),
-           msg:`D=${to4(D)}, p=${to4(Math.min(Math.max(2*p,0),1))}`,
+           msg:`D=${to2(D)}, p=${to2(Math.min(Math.max(2*p,0),1))}`,
            p:Math.min(Math.max(2*p,0),1),
            lam};
   }
 
-  /* ---------- 直方圖 + 指數理論線 ---------- */
-  let arrChart,svcChart;
-  function hist(id, title, data, lambda) {
-  const col = document.createElement('div');
+/* ---------- 直方圖 + 指數理論線 (可指定解析度) ---------- */
+let arrChart,svcChart;
+function hist(id, title, data, lambda, resolution = 0.01) {   // ← ★新增參數
+    const col = document.createElement('div');
   col.className = 'col-md-6';
   const cvs = document.createElement('canvas');
   cvs.id = id;
   col.appendChild(cvs);
   document.getElementById('chartsContainer').appendChild(col);
 
-  const n = data.length,
-        min = Math.min(...data),
-        max = Math.max(...data),
-        bins = Math.max(6, Math.ceil(Math.sqrt(n))),
-        size = (max - min) / bins || 1,
-        bars = [],
-        centers = [];
+  /* 依解析度貼齊到最近的 0.01 分 ----------------------- */
+  const binWidth = resolution;                                  // ← ★用解析度當寬度
+  const n   = data.length;
+  const min = Math.floor(Math.min(...data) / binWidth) * binWidth;
+  const max = Math.ceil (Math.max(...data) / binWidth) * binWidth;
+  const bins = Math.round((max - min) / binWidth) + 1;
 
-  /* 實際次數 */
-  for (let i = 0; i < bins; i++) bars[i] = 0;
+  /* 統計次數 (同樣寫法) */
+  const bars = Array(bins).fill(0), centers = [];
   data.forEach(v => {
-    const k = Math.min(bins - 1, Math.floor((v - min) / size));
+    const k = Math.min(bins - 1, Math.floor((v - min) / binWidth));
     bars[k]++;
   });
+  for (let i = 0; i < bins; i++) centers[i] = min + (i + 0.5) * binWidth;
 
-  /* 把柱心當作 x，方便與理論曲線對齊 */
-  for (let i = 0; i < bins; i++) centers[i] = min + (i + .5) * size;
-
-  /* 理論曲線：pdf = λe^{-λx}，轉成期望次數 = n·pdf·Δx */
+  /* 指數理論線 (同樣寫法) */
   const pdfData = [];
-  const step = (max - min) / 60;          // 曲線 60 個點
-  for (let x = min; x <= max; x += step) {
-    const y = n * lambda * Math.exp(-lambda * x) * size;
+  for (let x = min; x <= max + 1e-10; x += binWidth) {
+    const y = n * lambda * Math.exp(-lambda * x) * binWidth;
     pdfData.push({ x, y });
   }
 
+  /* 畫圖 — 只改 x 軸刻度設定 ----------------------------- */
   new Chart(cvs, {
-    type: 'scatter',                      // 組合圖
     data: {
       datasets: [
         { type: 'bar',
           label: '實際',
           data: centers.map((x, i) => ({ x, y: bars[i] })),
-          barPercentage: 1 },
+          barPercentage: 1,
+          backgroundColor: 'rgba(100,149,237,.6)' },
         { type: 'line',
           label: '指數理論',
           data: pdfData,
+          borderColor: '#e75480',
           borderWidth: 2,
           fill: false,
-          tension: 0.3 }
+          tension: .3 }
       ]
     },
     options: {
-      plugins: { title: { display: true, text: title } },
-      scales: {
-        x: { type: 'linear', title: { display: true, text: '分鐘' } },
-        y: { beginAtZero: true, title: { display: true, text: '次數' } }
+      plugins:{ title:{ display:true, text:title }},
+      scales:{
+        x:{
+          type:'linear',
+          min: min - binWidth / 2,
+          max: max + binWidth / 2,
+          ticks:{
+            stepSize: resolution,            // ← ★每格 0.01
+            callback:v => v.toFixed(2)       // ← ★顯示兩位小數
+          },
+          title:{ display:true, text:'分鐘' }
+        },
+        y:{ beginAtZero:true, title:{ display:true, text:'次數' } }
       }
     }
   });
 }
+
+
 
   /* ---------- 計算 ---------- */
   function compute(){
@@ -243,7 +252,7 @@
     if(rho>=1){
       box.innerHTML=`
         <div class="alert alert-danger"><strong>⚠ 系統超載，排隊時間過長，服務無法負荷！</strong><br>
-         ρ = ${to4(rho)} (>1)。最少需 S ≥ ${Math.ceil(lam/mu)} 才能穩定。
+         ρ = ${to2(rho)} (>1)。最少需 S ≥ ${Math.ceil(lam/mu)} 才能穩定。
         </div>`;
       return;
     }
@@ -262,7 +271,7 @@ const cvExplain = cv =>
       method=S===1?'M/M/1':`M/M/${S}`;
       if(S===1){
         Lq=Math.pow(lam,2)/(mu*(mu-lam));
-        formulaStr=`λ² / ( μ ( μ − λ ) ) = (${to4(lam)})² / ( ${to4(mu)} × ( ${to4(mu)} − ${to4(lam)} ) )`;
+        formulaStr=`λ² / ( μ ( μ − λ ) ) = (${to2(lam)})² / ( ${to2(mu)} × ( ${to2(mu)} − ${to2(lam)} ) )`;
         P0=1-rho;P0detail='π₀ = 1 − ρ';
       }else{
         let sum=0;for(let k=0;k<S;k++) sum+=Math.pow(lam/mu,k)/factorial(k);
@@ -276,8 +285,8 @@ const cvExplain = cv =>
       const alpha=Math.sqrt(2*(S+1));
       formulaStr=
         `(ρ^√(2(S+1)) / (1−ρ)) × ((Cₐ²+Cₛ²)/2) = `
-        + `( ${to4(rho)}^${to4(alpha)} ÷ (1−${to4(rho)}) × `
-        + `( ( ${to4(CvA*CvA)} + ${to4(CvS*CvS)} ) / 2 ) )`;
+        + `( ${to2(rho)}^${to2(alpha)} ÷ (1−${to2(rho)}) × `
+        + `( ( ${to2(CvA*CvA)} + ${to2(CvS*CvS)} ) / 2 ) )`;
       Lq=Math.pow(rho,alpha)/(1-rho)*(CvA*CvA+CvS*CvS)/2;
       P0='N/A';P0detail='G/G/S 無閉式 P₀';
     }
@@ -288,13 +297,13 @@ const cvExplain = cv =>
     let suggestion, reason;
     if(rho > 0.85 || Wq > 1){
       suggestion = '建議「增加」服務人員';
-      reason = `目前系統利用率 ρ = ${to4(rho)} 過高，平均等待時間 Wq = ${to4(Wq)} 分，顧客排隊時間偏長。增加服務櫃可降低等待時間及排隊長度。`;
+      reason = `目前系統利用率 ρ = ${to2(rho)} 過高，平均等待時間 Wq = ${to2(Wq)} 分，顧客排隊時間偏長。增加服務櫃可降低等待時間及排隊長度。`;
     } else if(rho < 0.30 && Wq < 0.2){
       suggestion = '建議「減少」服務人員';
-      reason = `系統利用率 ρ = ${to4(rho)} 偏低，平均等待時間僅 Wq = ${to4(Wq)} 分，服務人員閒置率高，可考慮精簡人力以降低成本。`;
+      reason = `系統利用率 ρ = ${to2(rho)} 偏低，平均等待時間僅 Wq = ${to2(Wq)} 分，服務人員閒置率高，可考慮精簡人力以降低成本。`;
     } else {
       suggestion = '維持現有服務人力';
-      reason = `系統利用率 ρ = ${to4(rho)} 與平均等待時間 Wq = ${to4(Wq)} 分皆在可接受範圍，維持目前人力配置即可。`;
+      reason = `系統利用率 ρ = ${to2(rho)} 與平均等待時間 Wq = ${to2(Wq)} 分皆在可接受範圍，維持目前人力配置即可。`;
     }
 
     /* ---------- 輸出 ---------- */
@@ -309,44 +318,44 @@ const cvExplain = cv =>
 
 <!-- 1. 到達分布 -->
 <p><strong>1. 到達分布</strong><br>
-平均到達時間 ȳ<sub>a</sub> = ${to4(mI)}，標準差 σ<sub>a</sub> = ${to4(sdI)}<br>
+平均到達時間 ȳ<sub>a</sub> = ${to2(mI)}，標準差 σ<sub>a</sub> = ${to2(sdI)}<br>
 驗證法一 (KS)：${ksI.msg}  — ${explain(ksI.ok)}<br>
-驗證法二 (CV)：${to4(CvA)} → ${cvExplain(CvA)}<br>
+驗證法二 (CV)：${to2(CvA)} → ${cvExplain(CvA)}<br>
 驗證結果：${badge(ksI.ok)}</p>
 
 <!-- 2. 服務分布 -->
 <p><strong>2. 服務分布</strong><br>
-平均服務時間 ȳ<sub>s</sub> = ${to4(mS)}，標準差 σ<sub>s</sub> = ${to4(sdS)}<br>
+平均服務時間 ȳ<sub>s</sub> = ${to2(mS)}，標準差 σ<sub>s</sub> = ${to2(sdS)}<br>
 驗證法一 (KS)：${ksS.msg}  — ${explain(ksS.ok)}<br>
-驗證法二 (CV)：${to4(CvS)} → ${cvExplain(CvS)}<br>
+驗證法二 (CV)：${to2(CvS)} → ${cvExplain(CvS)}<br>
 驗證結果：${badge(ksS.ok)}</p>
 
 
       <p class="mt-2">
-        <code>λ = 1 / ȳ<sub>a</sub> = 1 / ${to4(mI)} = ${to4(lam)} 人╱分</code><br>
-        <code>μ = 1 / ȳ<sub>s</sub> = 1 / ${to4(mS)} = ${to4(mu)} 人╱分</code><br>
-        <code>Cₐ = σ<sub>a</sub>/ȳ<sub>a</sub> = ${to4(sdI)} / ${to4(mI)} = ${to4(CvA)}</code><br>
-        <code>Cₛ = σ<sub>s</sub>/ȳ<sub>s</sub> = ${to4(sdS)} / ${to4(mS)} = ${to4(CvS)}</code>
+        <code>λ = 1 / ȳ<sub>a</sub> = 1 / ${to2(mI)} = ${to2(lam)} 人╱分</code><br>
+        <code>μ = 1 / ȳ<sub>s</sub> = 1 / ${to2(mS)} = ${to2(mu)} 人╱分</code><br>
+        <code>Cₐ = σ<sub>a</sub>/ȳ<sub>a</sub> = ${to2(sdI)} / ${to2(mI)} = ${to2(CvA)}</code><br>
+        <code>Cₛ = σ<sub>s</sub>/ȳ<sub>s</sub> = ${to2(sdS)} / ${to2(mS)} = ${to2(CvS)}</code>
       </p>
 
       <ul class="list-group list-group-flush">
         <li class="list-group-item">
-          (a) ρ = λ / (S μ) = ${to4(lam)} / ( ${S} × ${to4(mu)} ) = <strong>${to4(rho)}</strong>
+          (a) ρ = λ / (S μ) = ${to2(lam)} / ( ${S} × ${to2(mu)} ) = <strong>${to2(rho)}</strong>
         </li>
         <li class="list-group-item">
-          (b) Lq = ${formulaStr} = <strong>${to4(Lq)}</strong> 人
+          (b) Lq = ${formulaStr} = <strong>${to2(Lq)}</strong> 人
         </li>
         <li class="list-group-item">
-          (c) Ls = Lq + λ/μ = ${to4(Lq)} + (${to4(lam)} / ${to4(mu)}) = <strong>${to4(Ls)}</strong> 人
+          (c) Ls = Lq + λ/μ = ${to2(Lq)} + (${to2(lam)} / ${to2(mu)}) = <strong>${to2(Ls)}</strong> 人
         </li>
         <li class="list-group-item">
-          (d) Wq = Lq / λ = ${to4(Lq)} / ${to4(lam)} = <strong>${to4(Wq)}</strong> 分
+          (d) Wq = Lq / λ = ${to2(Lq)} / ${to2(lam)} = <strong>${to2(Wq)}</strong> 分
         </li>
         <li class="list-group-item">
-          (e) Ws = Ls / λ = ${to4(Ls)} / ${to4(lam)} = <strong>${to4(Ws)}</strong> 分
+          (e) Ws = Ls / λ = ${to2(Ls)} / ${to2(lam)} = <strong>${to2(Ws)}</strong> 分
         </li>
         <li class="list-group-item">
-          (f) P₀ = <strong>${P0==='N/A'?P0:to4(P0)}</strong>
+          (f) P₀ = <strong>${P0==='N/A'?P0:to2(P0)}</strong>
         </li>
       </ul>
 
