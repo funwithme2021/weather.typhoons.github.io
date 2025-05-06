@@ -15,14 +15,22 @@
     :root{--primary:#174287;--bg:#f6f8fb;--card:#fff;--shadow:0 2px 10px rgba(0,0,0,.05);}
     body{background:var(--bg);font-family:"Noto Sans TC","Segoe UI",sans-serif;}
     h1{color:var(--primary);font-size:1.8rem;font-weight:700;}
+
     .table thead th,.table tbody td{text-align:center;vertical-align:middle;}
-    .metrics-box{background:var(--card);border-radius:.5rem;box-shadow:var(--shadow);padding:1rem;margin-top:1.5rem;}
-    #chartsContainer{display:flex;flex-wrap:wrap;gap:2rem;}
-    canvas{max-width:420px;background:var(--card);border-radius:.5rem;box-shadow:var(--shadow);padding:.5rem;}
+
+    /* 統計區 */
+    .stat-card{background:var(--card);border-radius:.7rem;box-shadow:var(--shadow);padding:1.5rem;margin-top:1.5rem;}
+    .stat-card code{background:#eef1f6;border-radius:4px;padding:1px 4px;}
+    .formula{color:#555;}
+    .value{font-weight:600;}
+
+    /* 圖表區 */
+    #chartsContainer .col-md-6{padding:1rem;}
+    canvas{width:100%!important;background:var(--card);border-radius:.6rem;box-shadow:var(--shadow);padding:.5rem;}
+
     tfoot td{text-align:center;padding:.8rem 0;}
     details{font-size:.9rem;margin-top:.5rem;}
     summary{cursor:pointer;color:var(--primary);}
-    code{background:#f0f2f6;border-radius:4px;padding:0 3px;}
   </style>
 </head>
 
@@ -62,9 +70,11 @@
       </table>
     </div>
 
-    <!-- 統計 & 圖表 -->
-    <div id="metrics" class="metrics-box d-none"></div>
-    <div id="chartsContainer" class="mt-4"></div>
+    <!-- 統計卡片 -->
+    <div id="metrics" class="stat-card d-none"></div>
+
+    <!-- 圖表 -->
+    <div id="chartsContainer" class="row mt-4 gx-0"></div>
   </div>
 
 <script>
@@ -149,8 +159,9 @@
   /* ---------- 直方圖 ---------- */
   let arrChart,svcChart;
   function hist(id,title,data){
-    const cvs=document.createElement('canvas');cvs.id=id;
-    document.getElementById('chartsContainer').appendChild(cvs);
+    const col=document.createElement('div');col.className='col-md-6';
+    const cvs=document.createElement('canvas');cvs.id=id;col.appendChild(cvs);
+    document.getElementById('chartsContainer').appendChild(col);
     const min=Math.min(...data),max=Math.max(...data);
     const bins=Math.max(5,Math.ceil(Math.sqrt(data.length)));
     const size=(max-min)/bins||1,freq=Array(bins).fill(0);
@@ -183,6 +194,7 @@
     /* 基本統計 */
     const mI=mean(interMin),sdI=std(interMin);
     const mS=mean(serviceMin),sdS=std(serviceMin);
+    const CvA = sdI/mI, CvS = sdS/mS;
     const lam=1/mI,mu=1/mS,S=parseInt(serverInput.value)||1;
 
     /* 超載檢查 */
@@ -190,7 +202,7 @@
     const box=document.getElementById('metrics');box.classList.remove('d-none');
     if(rho>=1){
       box.innerHTML=
-        `<div class="alert alert-danger"><strong>⚠ 系統超載，排隊時間過長！</strong><br>
+        `<div class="alert alert-danger"><strong>⚠ 系統超載，排隊時間過長，服務無法負荷！</strong><br>
           ρ = ${to4(rho)} (>1)。最少需 S ≥ ${Math.ceil(lam/mu)} 才能穩定。
          </div>`;
       return;
@@ -216,24 +228,16 @@
         Lq=P0*Math.pow(lam/mu,S)*rho/(factorial(S)*Math.pow(1-rho,2));
       }
     }else{
-      // --- Kingman 近似 (G/G/S) ---
-method = 'Kingman 近似 (G/G/S)';
-
-const CvA   = sdI / mI,          // 到達變異係數
-      CvS   = sdS / mS,          // 服務變異係數
-      alpha = Math.sqrt(2 * (S + 1));          // √(2(S+1))
-
-// 先寫「原始符號公式」，再接「把數字帶入」──和前面 M/M/1 的寫法一致
-formulaStr =
-  `(ρ^√(2(S+1)) / (1−ρ)) × ( (Cₐ²+Cₛ²)/2 ) = `
-  + `( ${to4(rho)}^${to4(alpha)} ÷ (1−${to4(rho)}) × `
-  + `( ( ${to4(CvA * CvA)} + ${to4(CvS * CvS)} ) / 2 ) )`;
-
-// Kingman 近似 Lq
-Lq = (Math.pow(rho, alpha) / (1 - rho)) * (CvA * CvA + CvS * CvS) / 2;
-
-P0       = 'N/A';
-P0detail = 'G/G/S 無閉式 P₀';}
+      /* Kingman 近似 (G/G/S) */
+      method='Kingman 近似 (G/G/S)';
+      const alpha=Math.sqrt(2*(S+1));           // √(2(S+1))
+      formulaStr=
+        `(ρ^√(2(S+1)) / (1−ρ)) × ((Cₐ²+Cₛ²)/2) = `
+        + `( ${to4(rho)}^${to4(alpha)} ÷ (1−${to4(rho)}) × `
+        + `( ( ${to4(CvA*CvA)} + ${to4(CvS*CvS)} ) / 2 ) )`;
+      Lq=Math.pow(rho,alpha)/(1-rho)*(CvA*CvA+CvS*CvS)/2;
+      P0='N/A';P0detail='G/G/S 無閉式 P₀';
+    }
 
     const Ls=Lq+lam/mu,Wq=Lq/lam,Ws=Ls/lam;
 
@@ -250,16 +254,23 @@ P0detail = 'G/G/S 無閉式 P₀';}
       reason = `系統利用率 ρ = ${to4(rho)} 與平均等待時間 Wq = ${to4(Wq)} 分皆在可接受範圍，維持目前人力配置即可。`;
     }
 
-    /* 輸出 (含詳細步驟) */
+    /* ---------- 輸出 ---------- */
     box.innerHTML=`
       <h4 class="mb-3">${method} Performance</h4>
 
-      <p><strong>到達分布</strong> KS：${ksI.msg} ${badge(ksI.ok)} — ${explain(ksI.ok)}</p>
-      <p><strong>服務分布</strong> KS：${ksS.msg} ${badge(ksS.ok)} — ${explain(ksS.ok)}</p>
+      <p><strong>到達分布</strong> KS：${ksI.msg} ${badge(ksI.ok)} — ${explain(ksI.ok)}<br>
+         <span class="formula">平均到達時間ȳ<sub>a</sub> = </span><span class="value">${to4(mI)}</span>，
+         <span class="formula">到達時間標準差σ<sub>a</sub> = </span><span class="value">${to4(sdI)}</span></p>
+
+      <p><strong>服務分布</strong> KS：${ksS.msg} ${badge(ksS.ok)} — ${explain(ksS.ok)}<br>
+         <span class="formula">平均服務時間ȳ<sub>s</sub> = </span><span class="value">${to4(mS)}</span>，
+         <span class="formula">服務時間標準差σ<sub>s</sub> = </span><span class="value">${to4(sdS)}</span></p>
 
       <p class="mt-2">
-        <code>λ = 1 / ȳ<sub>a</sub> = 1 / ${to4(mI)} = ${to4(lam)} 人/分</code><br>
-        <code>μ = 1 / ȳ<sub>s</sub> = 1 / ${to4(mS)} = ${to4(mu)} 人/分</code>
+        <code>λ = 1 / ȳ<sub>a</sub> = 1 / ${to4(mI)} = ${to4(lam)} 人╱分</code><br>
+        <code>μ = 1 / ȳ<sub>s</sub> = 1 / ${to4(mS)} = ${to4(mu)} 人╱分</code><br>
+        <code>Cₐ = σ<sub>a</sub>/ȳ<sub>a</sub> = ${to4(sdI)} / ${to4(mI)} = ${to4(CvA)}</code><br>
+        <code>Cₛ = σ<sub>s</sub>/ȳ<sub>s</sub> = ${to4(sdS)} / ${to4(mS)} = ${to4(CvS)}</code>
       </p>
 
       <ul class="list-group list-group-flush">
