@@ -4,13 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>排隊系統資料收集工具</title>
+
+  <!-- 套件 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <!-- 樣式 -->
   <style>
-    :root{
-      --primary:#174287;--bg:#f6f8fb;--card:#ffffff;--shadow:0 2px 10px rgba(0,0,0,.05);
-    }
+    :root{--primary:#174287;--bg:#f6f8fb;--card:#fff;--shadow:0 2px 10px rgba(0,0,0,.05);}
     body{background:var(--bg);font-family:"Noto Sans TC","Segoe UI",sans-serif;}
     h1{color:var(--primary);font-size:1.8rem;font-weight:700;}
     .table thead th,.table tbody td{text-align:center;vertical-align:middle;}
@@ -20,12 +22,15 @@
     tfoot td{text-align:center;padding:.8rem 0;}
     details{font-size:.9rem;margin-top:.5rem;}
     summary{cursor:pointer;color:var(--primary);}
+    code{background:#f0f2f6;border-radius:4px;padding:0 3px;}
   </style>
 </head>
+
 <body>
   <div class="container py-4">
     <h1 class="mb-3">排隊系統資料收集工具</h1>
 
+    <!-- 操作列 -->
     <div class="row g-2 mb-3">
       <div class="col-auto">
         服務櫃數 S：
@@ -35,6 +40,8 @@
       <div class="col-auto d-flex align-items-end gap-2">
         <button id="btnCompute" class="btn btn-success btn-sm" disabled>計算統計</button>
         <button id="btnExport"  class="btn btn-outline-secondary btn-sm" disabled>匯出 Excel</button>
+        <button id="btnImport"  class="btn btn-outline-primary  btn-sm">匯入 Excel</button>
+        <input  id="fileInput"  type="file" accept=".xlsx" hidden>
       </div>
     </div>
 
@@ -51,13 +58,7 @@
           </tr>
         </thead>
         <tbody></tbody>
-        <tfoot>
-          <tr>
-            <td colspan="5">
-              <button id="btnAdd" class="btn btn-primary">➕ 新增顧客</button>
-            </td>
-          </tr>
-        </tfoot>
+        <tfoot><tr><td colspan="5"><button id="btnAdd" class="btn btn-primary">➕ 新增顧客</button></td></tr></tfoot>
       </table>
     </div>
 
@@ -68,181 +69,173 @@
 
 <script>
 (() => {
-  /*** 基本工具函式 ***/
-  const tbody        = document.querySelector('#dataTable tbody');
-  const addBtn       = document.getElementById('btnAdd');
-  const computeBtn   = document.getElementById('btnCompute');
-  const exportBtn    = document.getElementById('btnExport');
-  const serverInput  = document.getElementById('serverInput');
+  /* ---------- 工具 ---------- */
+  const tbody       = document.querySelector('#dataTable tbody');
+  const addBtn      = document.getElementById('btnAdd');
+  const computeBtn  = document.getElementById('btnCompute');
+  const exportBtn   = document.getElementById('btnExport');
+  const importBtn   = document.getElementById('btnImport');
+  const fileInput   = document.getElementById('fileInput');
+  const serverInput = document.getElementById('serverInput');
 
   let idx = 0;
-  const now  = () => Math.floor(Date.now() / 1000);
-  const fmt  = s => new Date(s * 1000).toLocaleTimeString('zh-TW', {hour12:false});
-  const mean = a => a.reduce((p,c)=>p+c,0) / a.length;
-  const std  = a => { const m = mean(a); return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1)); };
-  const to4  = n => Number.isFinite(n) ? (+n).toFixed(4) : '∞';
-  const factorial = n => n<=1 ? 1 : n*factorial(n-1);
+  const now  = () => Math.floor(Date.now()/1000);
+  const fmt  = s => new Date(s*1000).toLocaleTimeString('zh-TW',{hour12:false});
+  const mean = a => a.reduce((p,c)=>p+c,0)/a.length;
+  const std  = a => {const m=mean(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1));};
+  const to4  = n => Number.isFinite(n)?(+n).toFixed(4):'∞';
+  const factorial = n => n<=1?1:n*factorial(n-1);
+  const timeToSec = str => {const [h,m,s]=str.split(':').map(Number);return h*3600+m*60+s;};
 
-  /*** 動態新增列 ***/
-  function addRow() {
+  /* ---------- 共用 badge／explain ---------- */
+  const badge   = ok => ok ? '<span class="badge bg-success">符合</span>' : '<span class="badge bg-danger">不符合</span>';
+  const explain = ok => ok ? 'p ≥ 0.05，無法拒絕指數分布 → 視為符合'
+                           : 'p < 0.05，拒絕指數分布 → 不符合';
+
+  /* ---------- 新增列 ---------- */
+  function addRow(){
     idx++;
-    const tr = document.createElement('tr');
-    tr.dataset.id = idx;
+    const tr=document.createElement('tr');tr.dataset.id=idx;
     for(let i=0;i<5;i++) tr.appendChild(document.createElement('td'));
-
-    const [idTd,arrTd,leaTd] = tr.children;
-    idTd.textContent = idx;
-    arrTd.innerHTML  = `<span class="arrival"></span><br>
-                        <button class="btn btn-sm btn-primary record">到達</button>`;
-    leaTd.innerHTML  = `<span class="leave"></span><br>
-                        <button class="btn btn-sm btn-danger  record" disabled>離開</button>`;
-
+    const [idTd,arrTd,leaTd]=tr.children;
+    idTd.textContent=idx;
+    arrTd.innerHTML=`<span class="arrival"></span><br><button class="btn btn-sm btn-primary record">到達</button>`;
+    leaTd.innerHTML=`<span class="leave"></span><br><button class="btn btn-sm btn-danger record" disabled>離開</button>`;
     tbody.appendChild(tr);
   }
 
-  /*** 到達 / 離開 按鈕事件 ***/
-  tbody.addEventListener('click', e => {
+  /* ---------- 到達╱離開 ---------- */
+  tbody.addEventListener('click',e=>{
     if(!e.target.classList.contains('record')) return;
-    const tr = e.target.closest('tr');
-    const [idTd,arrTd,leaTd,intTd,svcTd] = tr.children;
+    const tr=e.target.closest('tr');
+    const [ ,arrTd,leaTd,intTd,svcTd]=tr.children;
 
-    if(e.target.textContent === '到達') {
-      const t = now();
-      tr.dataset.arrival = t;
-      arrTd.querySelector('span').textContent = fmt(t);
-      e.target.remove();
-      leaTd.querySelector('button').disabled = false;
-
-      const prev = tr.previousElementSibling;
-      if(prev && prev.dataset.arrival) {
-        const diffSec = t - prev.dataset.arrival;
-        intTd.textContent = `${to4(diffSec/60)}(${diffSec})`;
+    if(e.target.textContent==='到達'){
+      const t=now(); tr.dataset.arrival=t;
+      arrTd.querySelector('span').textContent=fmt(t);
+      e.target.remove(); leaTd.querySelector('button').disabled=false;
+      const prev=tr.previousElementSibling;
+      if(prev&&prev.dataset.arrival){
+        const diff=t-prev.dataset.arrival;
+        intTd.textContent=`${to4(diff/60)}(${diff})`;
       }
-
-    } else { // 離開
-      const t = now();
-      tr.dataset.leave = t;
-      leaTd.querySelector('span').textContent = fmt(t);
+    }else{ // 離開
+      const t=now(); tr.dataset.leave=t;
+      leaTd.querySelector('span').textContent=fmt(t);
       e.target.remove();
-
-      const diffSec = t - tr.dataset.arrival;
-      svcTd.textContent = `${to4(diffSec/60)}(${diffSec})`;
-
-      if(!tbody.querySelector('.record')) {
-        computeBtn.disabled = false;
-        exportBtn.disabled  = false;
-      }
+      const diff=t-tr.dataset.arrival;
+      svcTd.textContent=`${to4(diff/60)}(${diff})`;
+      if(!tbody.querySelector('.record')){computeBtn.disabled=false;exportBtn.disabled=false;}
     }
   });
 
-  /*** Kolmogorov–Smirnov 指數分布檢定 ***/
-  function ksExp(arr) {
-    const n = arr.length;
-    if(n < 2) return {ok:false,msg:'樣本不足',p:0};
-
-    const sorted = [...arr].sort((a,b)=>a-b);
-    const lam = 1 / mean(sorted);
-    let D = 0;
-    sorted.forEach((x,i)=>{
-      const Fexp = 1 - Math.exp(-lam * x);
-      const Fi   = (i+1)/n;
-      const diff = Math.max(Math.abs(Fexp-Fi), Math.abs(Fexp-i/n));
-      if(diff > D) D = diff;
+  /* ---------- KS 檢定 (指數) ---------- */
+  function ksExp(arr){
+    const n=arr.length;if(n<2) return{ok:false,msg:'樣本不足',p:0};
+    const s=[...arr].sort((a,b)=>a-b),lam=1/mean(s);let D=0;
+    s.forEach((x,i)=>{
+      const F=1-Math.exp(-lam*x),Fi=(i+1)/n;
+      const d=Math.max(Math.abs(F-Fi),Math.abs(F-i/n));
+      if(d>D)D=d;
     });
-
-    const z = Math.sqrt(n) * D;
-    let p = 0;
-    for(let k=1;k<=100;k++) p += Math.pow(-1,k-1)*Math.exp(-2*k*k*z*z);
-    p = Math.min(Math.max(2*p,0),1);
-
-    const crit = 1.36 / Math.sqrt(n);
-    return {ok: D < crit, msg:`D=${to4(D)}, p=${to4(p)}`, p, lam};
+    let p=0,z=Math.sqrt(n)*D;
+    for(let k=1;k<=100;k++) p+=Math.pow(-1,k-1)*Math.exp(-2*k*k*z*z);
+    return{ok:D<1.36/Math.sqrt(n),
+           msg:`D=${to4(D)}, p=${to4(Math.min(Math.max(2*p,0),1))}`,
+           p:Math.min(Math.max(2*p,0),1),
+           lam};
   }
 
-  /*** 直方圖 ***/
-  let arrChart, svcChart;
-  function buildHist(id,title,data){
-    const cvs = document.createElement('canvas');
-    cvs.id = id;
+  /* ---------- 直方圖 ---------- */
+  let arrChart,svcChart;
+  function hist(id,title,data){
+    const cvs=document.createElement('canvas');cvs.id=id;
     document.getElementById('chartsContainer').appendChild(cvs);
-
-    const min  = Math.min(...data);
-    const max  = Math.max(...data);
-    const bins = Math.max(5, Math.ceil(Math.sqrt(data.length)));
-    const size = (max - min) / bins || 1;
-    const freq = Array(bins).fill(0);
-    data.forEach(v => {
-      const idx = Math.min(bins-1, Math.floor((v-min)/size));
-      freq[idx]++;
+    const min=Math.min(...data),max=Math.max(...data);
+    const bins=Math.max(5,Math.ceil(Math.sqrt(data.length)));
+    const size=(max-min)/bins||1,freq=Array(bins).fill(0);
+    data.forEach(v=>{
+      const i=Math.min(bins-1,Math.floor((v-min)/size));
+      freq[i]++;
     });
-
-    const labels = freq.map((_,i)=>`${(min+i*size).toFixed(2)}-${(min+(i+1)*size).toFixed(2)}`);
+    const labels=freq.map((_,i)=>
+      `${(min+i*size).toFixed(2)}-${(min+(i+1)*size).toFixed(2)}`);
     return new Chart(cvs,{
       type:'bar',
-      data:{labels,datasets:[{data:freq,barPercentage:1.0}]},
-      options:{plugins:{title:{display:true,text:title},legend:{display:false}},scales:{y:{beginAtZero:true}}}
+      data:{labels,datasets:[{data:freq,barPercentage:1}]},
+      options:{
+        plugins:{title:{display:true,text:title},legend:{display:false}},
+        scales:{y:{beginAtZero:true}}
+      }
     });
   }
 
-  /*** 統計計算 ***/
+  /* ---------- 計算 ---------- */
   function compute(){
-    const rows = [...tbody.querySelectorAll('tr')];
-    const arrivals   = rows.map(r=>+r.dataset.arrival).filter(Boolean);
-    if(arrivals.length < 2) return alert('至少兩筆資料');
+    const rows=[...tbody.querySelectorAll('tr')];
+    const arrivals=rows.map(r=>+r.dataset.arrival).filter(Boolean);
+    if(arrivals.length<2) return alert('至少兩筆資料');
 
-    const servicesSec = rows.map(r=>+r.dataset.leave - +r.dataset.arrival);
-    const interMin    = [];
-    for(let i=1;i<arrivals.length;i++) interMin.push((arrivals[i]-arrivals[i-1])/60);
-    const serviceMin  = servicesSec.map(s=>s/60);
+    const services=rows.map(r=>+r.dataset.leave- +r.dataset.arrival);
+    const interMin=[];for(let i=1;i<arrivals.length;i++) interMin.push((arrivals[i]-arrivals[i-1])/60);
+    const serviceMin=services.map(s=>s/60);
 
     /* 基本統計 */
-    const mI = mean(interMin), sdI = std(interMin);
-    const mS = mean(serviceMin), sdS = std(serviceMin);
-    const lam = 1 / mI;
-    const mu  = 1 / mS;
-    const S   = parseInt(serverInput.value) || 1;
+    const mI=mean(interMin),sdI=std(interMin);
+    const mS=mean(serviceMin),sdS=std(serviceMin);
+    const lam=1/mI,mu=1/mS,S=parseInt(serverInput.value)||1;
 
-    /* 指數分布檢定 */
-    const ksI = ksExp(interMin);
-    const ksS = ksExp(serviceMin);
-    const expOK = ksI.ok && ksS.ok;
-
-    /* Queue performance */
-    const rho = lam / (S * mu);       // 系統利用率
-    let method, Lq, P0, formula, P0detail;
-
-    if(expOK){ // M/M/S
-      method = S===1 ? 'M/M/1' : `M/M/${S}`;
-
-      if(S === 1){
-        Lq = Math.pow(lam,2) / (mu * (mu - lam));
-        formula = 'λ² / (μ(μ-λ))';
-        P0 = 1 - rho > 0 ? 1 - rho : 0;
-        P0detail = 'π₀(1+ρ+ρ²+⋯)=1 ⇒ π₀/(1-ρ)=1 ⇒ π₀=1-ρ = 1-λ/μ';
-      } else {
-        let sum = 0;
-        for(let k=0;k<S;k++) sum += Math.pow(lam/mu,k) / factorial(k);
-        const last = Math.pow(lam/mu,S) / (factorial(S)*(1-rho));
-        P0 = 1 / (sum + last);
-
-        Lq = P0 * Math.pow(lam/mu,S) * rho / (factorial(S) * Math.pow(1-rho,2));
-        formula = 'Erlang-C：P₀(λ/μ)^S ρ / (S!(1-ρ)²)';
-        P0detail = 'P₀^{-1}=∑_{k=0}^{S-1}(λ/μ)^k/k! + (λ/μ)^S /(S!(1-ρ))';
-      }
-
-    } else {  // G/G/S Kingman
-      method = 'Kingman 近似 (G/G/S)';
-      const CvA = sdI / mI, CvS = sdS / mS;
-      const alpha = Math.sqrt(2*(S+1));
-      Lq = Math.pow(rho,alpha) / (1-rho) * (CvA*CvA + CvS*CvS) / 2;
-      formula = 'ρ^√(2(S+1))/(1-ρ)×((Cₐ²+Cₛ²)/2)';
-      P0 = 'N/A';
-      P0detail = 'G/G/S 中無閉式 P₀ 公式';
+    /* 超載檢查 */
+    const rho=lam/(S*mu);
+    const box=document.getElementById('metrics');box.classList.remove('d-none');
+    if(rho>=1){
+      box.innerHTML=
+        `<div class="alert alert-danger"><strong>⚠ 系統超載，排隊時間過長！</strong><br>
+          ρ = ${to4(rho)} (>1)。最少需 S ≥ ${Math.ceil(lam/mu)} 才能穩定。
+         </div>`;
+      return;
     }
 
-    const Ls = Lq + lam / mu;
-    const Wq = Lq / lam;
-    const Ws = Ls / lam;
+    /* 指數檢定 */
+    const ksI=ksExp(interMin),ksS=ksExp(serviceMin);
+    const expOK=ksI.ok&&ksS.ok;
+
+    /* Lq 等 */
+    let method,Lq,P0,formulaStr,P0detail;
+    if(expOK){
+      method=S===1?'M/M/1':`M/M/${S}`;
+      if(S===1){
+        Lq=Math.pow(lam,2)/(mu*(mu-lam));
+        formulaStr=`λ² / ( μ ( μ − λ ) ) = (${to4(lam)})² / ( ${to4(mu)} × ( ${to4(mu)} − ${to4(lam)} ) )`;
+        P0=1-rho;P0detail='π₀ = 1 − ρ';
+      }else{
+        let sum=0;for(let k=0;k<S;k++) sum+=Math.pow(lam/mu,k)/factorial(k);
+        const tail=Math.pow(lam/mu,S)/(factorial(S)*(1-rho));
+        P0=1/(sum+tail);P0detail='Erlang-C 公式推導';
+        formulaStr=`Erlang-C = P₀ (λ/μ)^S ρ / [ S! (1−ρ)² ]`;
+        Lq=P0*Math.pow(lam/mu,S)*rho/(factorial(S)*Math.pow(1-rho,2));
+      }
+    }else{
+      // --- Kingman 近似 (G/G/S) ---
+method = 'Kingman 近似 (G/G/S)';
+
+const CvA   = sdI / mI,          // 到達變異係數
+      CvS   = sdS / mS,          // 服務變異係數
+      alpha = Math.sqrt(2 * (S + 1));          // √(2(S+1))
+
+// 先寫「原始符號公式」，再接「把數字帶入」──和前面 M/M/1 的寫法一致
+formulaStr =
+  `(ρ^√(2(S+1)) / (1−ρ)) × ( (Cₐ²+Cₛ²)/2 ) = `
+  + `( ${to4(rho)}^${to4(alpha)} ÷ (1−${to4(rho)}) × `
+  + `( ( ${to4(CvA * CvA)} + ${to4(CvS * CvS)} ) / 2 ) )`;
+
+// Kingman 近似 Lq
+Lq = (Math.pow(rho, alpha) / (1 - rho)) * (CvA * CvA + CvS * CvS) / 2;
+
+P0       = 'N/A';
+P0detail = 'G/G/S 無閉式 P₀';}
+
+    const Ls=Lq+lam/mu,Wq=Lq/lam,Ws=Ls/lam;
 
     /* －－ 人力建議 －－ */
     let suggestion, reason;
@@ -257,67 +250,95 @@
       reason = `系統利用率 ρ = ${to4(rho)} 與平均等待時間 Wq = ${to4(Wq)} 分皆在可接受範圍，維持目前人力配置即可。`;
     }
 
-    /* －－ 畫面輸出 －－ */
-    const box = document.getElementById('metrics');
-    box.classList.remove('d-none');
-    const badge = ok => ok
-      ? `<span class="badge bg-success">符合</span>`
-      : `<span class="badge bg-danger">不符合</span>`;
-
-    box.innerHTML = `
+    /* 輸出 (含詳細步驟) */
+    box.innerHTML=`
       <h4 class="mb-3">${method} Performance</h4>
 
-      <p><strong>到達分布</strong> KS：${ksI.msg} ${badge(ksI.ok)}</p>
-      <p><strong>服務分布</strong> KS：${ksS.msg} ${badge(ksS.ok)}</p>
+      <p><strong>到達分布</strong> KS：${ksI.msg} ${badge(ksI.ok)} — ${explain(ksI.ok)}</p>
+      <p><strong>服務分布</strong> KS：${ksS.msg} ${badge(ksS.ok)} — ${explain(ksS.ok)}</p>
 
-      <details><summary>為何判定「符合指數分布」？</summary>
-        <p>假設 H₀：「樣本來自指數分布」，H₁：「非指數分布」。若 KS 檢定 p-value ≥ 0.05，表示無足夠證據拒絕 H₀，因此視為<strong>符合</strong>指數分布。本例 p (到達) = ${to4(ksI.p)}, p (服務) = ${to4(ksS.p)}。</p>
-      </details>
-
-      <p class="mt-2">λ = 1/&#772;X<sub>a</sub> = 1/${to4(mI)} = <strong>${to4(lam)}</strong> 人/分 (SD=${to4(sdI)})</p>
-      <p>μ = 1/&#772;X<sub>s</sub> = 1/${to4(mS)} = <strong>${to4(mu)}</strong> 人/分 (SD=${to4(sdS)})</p>
+      <p class="mt-2">
+        <code>λ = 1 / ȳ<sub>a</sub> = 1 / ${to4(mI)} = ${to4(lam)} 人/分</code><br>
+        <code>μ = 1 / ȳ<sub>s</sub> = 1 / ${to4(mS)} = ${to4(mu)} 人/分</code>
+      </p>
 
       <ul class="list-group list-group-flush">
-        <li class="list-group-item">(a) ρ = λ/(Sμ) = ${to4(lam)}/(${S}×${to4(mu)}) = <strong>${to4(rho)}</strong></li>
-        <li class="list-group-item">(b) Lq = ${formula} = <strong>${to4(Lq)}</strong> 人</li>
-        <li class="list-group-item">(c) Ls = Lq + λ/μ = ${to4(Lq)} + ${to4(lam/mu)} = <strong>${to4(Ls)}</strong> 人</li>
-        <li class="list-group-item">(d) Wq = Lq / λ = ${to4(Lq)}/${to4(lam)} = <strong>${to4(Wq)}</strong> 分</li>
-        <li class="list-group-item">(e) Ws = Ls / λ = ${to4(Ls)}/${to4(lam)} = <strong>${to4(Ws)}</strong> 分</li>
-        <li class="list-group-item">(f) P₀ = <strong>${P0==='N/A'?P0:to4(P0)}</strong></li>
+        <li class="list-group-item">
+          (a) ρ = λ / (S μ) = ${to4(lam)} / ( ${S} × ${to4(mu)} ) = <strong>${to4(rho)}</strong>
+        </li>
+        <li class="list-group-item">
+          (b) Lq = ${formulaStr} = <strong>${to4(Lq)}</strong> 人
+        </li>
+        <li class="list-group-item">
+          (c) Ls = Lq + λ/μ = ${to4(Lq)} + (${to4(lam)} / ${to4(mu)}) = <strong>${to4(Ls)}</strong> 人
+        </li>
+        <li class="list-group-item">
+          (d) Wq = Lq / λ = ${to4(Lq)} / ${to4(lam)} = <strong>${to4(Wq)}</strong> 分
+        </li>
+        <li class="list-group-item">
+          (e) Ws = Ls / λ = ${to4(Ls)} / ${to4(lam)} = <strong>${to4(Ws)}</strong> 分
+        </li>
+        <li class="list-group-item">
+          (f) P₀ = <strong>${P0==='N/A'?P0:to4(P0)}</strong>
+        </li>
       </ul>
 
-      <details><summary>空系統機率 P₀ 推導</summary>
-        <pre style="white-space:pre-wrap">${P0detail}</pre>
-      </details>
+      <details><summary>空系統機率 P₀ 推導</summary><pre>${P0detail}</pre></details>
 
-      <div class="alert alert-warning mt-3" role="alert">
+      <div class="alert alert-warning mt-3">
         <strong>人力配置建議：</strong>${suggestion}<br>${reason}
       </div>
     `;
 
-    /* 直方圖 (重建) */
-    document.getElementById('chartsContainer').innerHTML = '';
-    if(arrChart) arrChart.destroy();
-    if(svcChart) svcChart.destroy();
-    arrChart = buildHist('arrHist', '到達間隔分布 (min)', interMin);
-    svcChart = buildHist('svcHist', '服務時間分布 (min)', serviceMin);
+    /* 直方圖 */
+    document.getElementById('chartsContainer').innerHTML='';
+    if(arrChart)arrChart.destroy();if(svcChart)svcChart.destroy();
+    arrChart=hist('arrHist','到達間隔分布 (min)',interMin);
+    svcChart=hist('svcHist','服務時間分布 (min)',serviceMin);
   }
 
-  /*** 匯出 Excel ***/
+  /* ---------- 匯出 ---------- */
   function exportExcel(){
-    const wb = XLSX.utils.book_new();
-    const data = [["#","Arrival","Leave","Inter(min)(sec)","Service(min)(sec)"]];
-    tbody.querySelectorAll('tr').forEach(r=>{
-      data.push([...(r.children)].map(td=>td.textContent.trim()));
-    });
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), 'Data');
-    XLSX.writeFile(wb, 'queue_data.xlsx');
+    const wb=XLSX.utils.book_new(),
+          data=[["#","Arrival","Leave","Inter(min)(sec)","Service(min)(sec)"]];
+    tbody.querySelectorAll('tr').forEach(r=>
+      data.push([...(r.children)].map(td=>td.textContent.trim())));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),'Data');
+    XLSX.writeFile(wb,'queue_data.xlsx');
   }
 
-  /*** 事件綁定 ***/
-  addBtn     .addEventListener('click', addRow);
-  computeBtn .addEventListener('click', compute);
-  exportBtn  .addEventListener('click', exportExcel);
+  /* ---------- 匯入 ---------- */
+  function importExcel(f){
+    const fr=new FileReader();
+    fr.onload=e=>{
+      const wb=XLSX.read(e.target.result,{type:'array'}),
+            rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});
+      if(rows.length<2)return alert('檔案為空');
+      tbody.innerHTML='';idx=0;
+      rows.slice(1).forEach(r=>{
+        if(!r[1]||!r[2])return;
+        idx++;const tr=document.createElement('tr');tr.dataset.id=idx;
+        for(let i=0;i<5;i++)tr.appendChild(document.createElement('td'));
+        const [idTd,arrTd,leaTd,intTd,svcTd]=tr.children;
+        [idTd.textContent,arrTd.textContent,leaTd.textContent,intTd.textContent,svcTd.textContent]=[idx,...r.slice(1,5)];
+        tr.dataset.arrival=timeToSec(r[1]);tr.dataset.leave=timeToSec(r[2]);
+        tbody.appendChild(tr);
+      });
+      computeBtn.disabled=false;exportBtn.disabled=false;
+      alert('匯入完成，可計算統計');
+    };
+    fr.readAsArrayBuffer(f);
+  }
+
+  /* ---------- 綁定 ---------- */
+  addBtn.addEventListener('click',addRow);
+  computeBtn.addEventListener('click',compute);
+  exportBtn.addEventListener('click',exportExcel);
+  importBtn.addEventListener('click',()=>fileInput.click());
+  fileInput.addEventListener('change',e=>{
+    if(e.target.files.length)importExcel(e.target.files[0]);
+    fileInput.value='';
+  });
 })();
 </script>
 </body>
