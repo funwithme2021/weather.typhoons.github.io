@@ -434,7 +434,7 @@ function autoCreateErrorCone() {
     /************ 風圈與標籤輔助 ************/
     function addTyphoonMarker(lat, lng, intensity, draggable) {
       const iconUrl = getIconUrl(intensity);
-      return L.marker([lat, lng], {icon: L.icon({iconUrl, iconSize: [28, 28], iconAnchor: [14, 14]}), draggable});
+      return L.marker([lat, lng], {icon: L.icon({iconUrl, iconSize: [23, 23], iconAnchor: [11.5, 11.5]}), draggable});
     }
     function getIconUrl(i) {
       switch (i) {
