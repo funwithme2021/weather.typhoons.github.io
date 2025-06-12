@@ -1,304 +1,742 @@
-<!-- contact.html -->
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>進度查詢系統</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>颱風預測路徑繪圖（改良誤差錐）</title>
 
-<style>
-/* —— 色票 —— */
-:root{
-  --bg-grad:linear-gradient(135deg,#c4d8ff 0%,#ebf3ff 40%,#ffffff 100%);
-  --card-bg:rgba(255,255,255,.46);
-  --card-bg-dark:rgba(35,35,35,.56);
-  --surface:#ffffff;   --surface-dark:#2b2b2b;
-  --text:#222;         --text-dark:#e0e0e0;
-  --sub:#666;          --sub-dark:#999;
-  --primary:#174287;   --accent:#e63946;
-  --green:#2e7d32;     --red:#d32f2f;  --orange:#ff9800;
-}
-body.dark{
-  --card-bg:var(--card-bg-dark);
-  --surface:var(--surface-dark);
-  --text:var(--text-dark);
-  --sub:var(--sub-dark);
-  --primary:#5c9eff;
-}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
-/* —— 基礎 —— */
-*{box-sizing:border-box;}
-body{
-  margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-  font-family:"Noto Sans TC","Segoe UI",Helvetica,Arial,sans-serif;
-  background:var(--bg-grad);color:var(--text);transition:.4s;
-}
-.hidden{display:none;}
-h1,h2{margin:0;font-weight:700;letter-spacing:.4px;}
-
-/* —— 共用控制元件（深夜 / 翻譯 / 登出） —— */
-.ctrl-bar{display:flex;gap:.8rem;align-items:center;}
-.ctrl-btn{
-  background:transparent;border:none;color:var(--primary);
-  font-size:1.25rem;cursor:pointer;transition:.25s;
-}
-.ctrl-btn:hover{transform:scale(1.15);}
-#logoutBtn{font-size:.95rem;padding:.35rem .8rem;border-radius:6px;
-  background:var(--primary);color:#fff;}
-
-/* —— 登入卡片 —— */
-.card{
-  width:clamp(300px,88vw,420px);
-  padding:2.2rem 2rem 2.7rem;border-radius:18px;
-  background:var(--card-bg);
-  backdrop-filter:blur(14px) saturate(180%);
-  box-shadow:0 12px 28px rgba(0,0,0,.12);
-}
-.card header{display:flex;justify-content:space-between;align-items:center;}
-.input-wrap{position:relative;margin-top:1.6rem;}
-.input-wrap input{
-  width:100%;padding:.78rem 1rem .78rem 3.1rem;font-size:1.05rem;
-  border-radius:10px;border:2px solid transparent;outline:none;transition:.25s;
-}
-.input-wrap input:focus{border-color:var(--primary);}
-.icon-person{
-  position:absolute;left:.9rem;top:50%;transform:translateY(-50%);
-  width:20px;height:20px;fill:var(--sub);
-}
-#submitBtn{
-  margin-top:1.7rem;width:100%;display:flex;justify-content:center;gap:.45rem;
-  padding:.78rem;border:none;border-radius:10px;
-  background:linear-gradient(135deg,#4e8fe4 0%,#174287 100%);
-  color:#fff;font-size:1.05rem;letter-spacing:.5px;cursor:pointer;
-  transition:.25s;box-shadow:0 4px 12px rgba(0,0,0,.16);
-}
-#submitBtn:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.18);}
-#submitBtn svg{width:18px;height:18px;fill:#fff}
-
-/* —— 錯誤提示 —— */
-#errorMsg{
-  margin-top:1.1rem;padding:.65rem .95rem;border-left:4px solid var(--accent);
-  background:rgba(230,57,70,.08);border-radius:8px;
-  color:var(--accent);font-weight:600;font-size:.92rem;line-height:1.55;
-}
-#errorMsg svg{vertical-align:-3px;margin-right:6px;}
-
-/* —— 查詢結果 —— */
-main{max-width:920px;width:92vw;margin:0 auto;}
-header#topBar{
-  display:flex;justify-content:space-between;align-items:center;
-  margin-bottom:1rem;
-}
-#filterBar{display:flex;gap:.6rem;margin-bottom:.9rem;flex-wrap:wrap;}
-#filterBar button{
-  padding:.38rem .95rem;border:1px solid var(--primary);
-  background:var(--surface);color:var(--primary);
-  border-radius:7px;font-size:.9rem;cursor:pointer;transition:.25s;
-}
-#filterBar button.active,
-#filterBar button:hover{background:var(--primary);color:#fff}
-table{
-  width:100%;border-collapse:collapse;background:var(--surface);
-  border-radius:10px;overflow:hidden;font-size:.96rem;
-  box-shadow:0 6px 20px rgba(0,0,0,.08);
-}
-th,td{padding:.75rem 1rem;text-align:left;border-bottom:1px solid rgba(0,0,0,.05);}
-thead{background:rgba(23,66,135,.12);}
-tbody tr:hover{background:rgba(0,0,0,.035);}
-.status-replied{color:var(--green);font-weight:700;}
-.status-waiting{color:var(--red);font-weight:700;}
-.note-priority{color:var(--orange);font-weight:600;}
-
-/* —— 行動版卡片 —— */
-@media(max-width:650px){
-  body{align-items:flex-start;justify-content:flex-start;}
-  .card{width:100%;height:100vh;max-height:none;border-radius:0;box-shadow:none;padding-top:22vh;}
-  header#topBar{flex-direction:column;gap:.7rem;}
-  table,thead,tr,td,tbody{display:block;width:100%;}
-  th{display:none;}
-  tr{margin-bottom:1.1rem;border-radius:10px;background:var(--surface);}
-  td{position:relative;padding:1rem 1rem 1rem 46%;border:none;border-bottom:1px solid rgba(0,0,0,.07);}
-  td:last-child{border-bottom:none;}
-  td::before{
-    content:attr(data-label);
-    position:absolute;left:1rem;top:1rem;font-weight:600;color:var(--sub);
-  }
-  #filterBar{justify-content:center;}
-}
-</style>
+  <style>
+    body{margin:0;font-family:"Microsoft JhengHei",sans-serif;background:#f0f2f5;}
+    #map{width:100%;height:95vh;box-shadow:0 0 8px rgba(0,0,0,.15);}
+    .bottom-panel{background:#fff;box-shadow:0 -2px 6px rgba(0,0,0,.2);padding:20px;}
+    .bottom-panel h2{text-align:center;margin:0 0 1rem;}
+    .form-group{margin-bottom:15px;}
+    .form-inline{display:flex;flex-wrap:wrap;align-items:center;}
+    .form-inline>div{margin-right:20px;margin-bottom:5px;}
+    label{font-weight:bold;margin-right:6px;}
+    input[type="number"],input[type="text"],select{width:90px;margin-right:10px;margin-bottom:5px;}
+    button{padding:6px 12px;border:none;border-radius:4px;cursor:pointer;margin-right:10px;font-size:.9rem;color:#fff;}
+    .btn-primary{background:#007bff;}.btn-info{background:#009688;}
+    .btn-success{background:#4caf50;}.btn-warning{background:#ff9800;}.btn-danger{background:#f44336;}
+    #past-list div{margin-bottom:5px;}
+    .future-container{margin-top:10px;padding:10px;background:#fafafa;border-radius:5px;border:1px solid #ccc;max-height:200px;overflow-y:auto;}
+    .future-item{background:#fff;padding:10px;margin-bottom:8px;border:1px solid #ddd;border-radius:5px;}
+    .future-item h4{margin:0 0 5px;}
+    .county-container{max-height:150px;overflow-y:auto;border:1px solid #ccc;padding:6px;}
+    .time-label{background:rgba(0,0,0,0);color:#000;padding:0;font-size:1rem;white-space:nowrap;}
+    .crosshair-cursor{cursor:crosshair;}
+  </style>
 </head>
 
 <body>
+  <div id="map"></div>
 
-<!-- =============== 登入卡片 =============== -->
-<div class="card" id="loginCard">
-  <header>
-    <h1>進度查詢</h1>
-    <div class="ctrl-bar">
-      <button id="darkToggle1" class="ctrl-btn" title="深夜模式">🌙</button>
-      <div id="translate1"></div>
+  <div class="bottom-panel">
+    <h2>颱風預測路徑繪圖</h2>
+
+    <div class="form-group">
+      <h3>過去位置</h3>
+      <div class="form-inline">
+        <div><label>經度</label><input type="number" step="0.01" id="past-lon"/></div>
+        <div><label>緯度</label><input type="number" step="0.01" id="past-lat"/></div>
+        <button class="btn-info" onclick="addPastPoint()">新增</button>
+      </div>
+      <div id="past-list"></div>
+    </div><hr/>
+
+    <div class="form-group">
+      <h3>現在位置</h3>
+      <div class="form-inline">
+        <div><label>經度</label><input type="number" step="0.01" id="current-lon"/></div>
+        <div><label>緯度</label><input type="number" step="0.01" id="current-lat"/></div>
+        <div><label>強度</label>
+          <select id="current-intensity">
+            <option value="TD">TD</option><option value="TS">TS</option>
+            <option value="ST">ST</option><option value="TY">TY</option>
+          </select></div>
+      </div>
+      <div class="form-inline">
+        <div><label>7級 NW</label><input type="number" step="1" id="current-r7-NW"/></div>
+        <div><label>7級 NE</label><input type="number" step="1" id="current-r7-NE"/></div>
+        <div><label>7級 SE</label><input type="number" step="1" id="current-r7-SE"/></div>
+        <div><label>7級 SW</label><input type="number" step="1" id="current-r7-SW"/></div>
+      </div>
+      <div class="form-inline">
+        <div><label>10級 NW</label><input type="number" step="1" id="current-r10-NW"/></div>
+        <div><label>10級 NE</label><input type="number" step="1" id="current-r10-NE"/></div>
+        <div><label>10級 SE</label><input type="number" step="1" id="current-r10-SE"/></div>
+        <div><label>10級 SW</label><input type="number" step="1" id="current-r10-SW"/></div>
+      </div>
+      <div class="form-inline">
+        <div><label>時間</label><input type="text" id="current-time" placeholder="如: 現在 7/12 20時"/></div>
+        <button class="btn-primary" onclick="setCurrent()">設定/更新</button>
+      </div>
+    </div><hr/>
+
+    <div class="form-group">
+      <h3>未來預測</h3>
+      <button class="btn-info" onclick="addFutureItem()">新增預測點</button>
+      <div id="future-container" class="future-container"></div>
+    </div><hr/>
+
+    <div class="form-group">
+      <h3>誤差範圍 (二擇一)</h3>
+      <button class="btn-info" onclick="autoCreateErrorCone()">🔄 自動生成</button>
+      <button class="btn-primary" onclick="toggleErrorDraw()">✏️ 手動繪製</button>
+      <button class="btn-warning" onclick="deleteLastErrorVertex()">刪除最後點</button>
+      <button class="btn-success" onclick="finishErrorPolygon()">完成</button>
+    </div><hr/>
+
+    <div class="form-group">
+      <h3>警戒區 (自由繪製)</h3>
+      <button class="btn-primary" onclick="toggleWarningDraw()">繪製模式</button>
+      <button class="btn-warning" onclick="deleteLastWarningVertex()">刪除最後點</button>
+      <button class="btn-success" onclick="finishWarningPolygon()">完成</button>
+    </div><hr/>
+
+    <div class="form-group">
+      <h3>縣市警戒區 (勾選)</h3>
+      <div id="county-container" class="county-container">
+        <label><input type="checkbox" name="county" value="基隆市" onchange="highlightCities()"> 基隆市</label><br/>
+        <label><input type="checkbox" name="county" value="臺北市" onchange="highlightCities()"> 臺北市</label><br/>
+        <label><input type="checkbox" name="county" value="新北市" onchange="highlightCities()"> 新北市</label><br/>
+        <label><input type="checkbox" name="county" value="桃園市" onchange="highlightCities()"> 桃園市</label><br/>
+        <label><input type="checkbox" name="county" value="新竹市" onchange="highlightCities()"> 新竹市</label><br/>
+        <label><input type="checkbox" name="county" value="新竹縣" onchange="highlightCities()"> 新竹縣</label><br/>
+        <label><input type="checkbox" name="county" value="苗栗縣" onchange="highlightCities()"> 苗栗縣</label><br/>
+        <label><input type="checkbox" name="county" value="臺中市" onchange="highlightCities()"> 臺中市</label><br/>
+        <label><input type="checkbox" name="county" value="彰化縣" onchange="highlightCities()"> 彰化縣</label><br/>
+        <label><input type="checkbox" name="county" value="南投縣" onchange="highlightCities()"> 南投縣</label><br/>
+        <label><input type="checkbox" name="county" value="雲林縣" onchange="highlightCities()"> 雲林縣</label><br/>
+        <label><input type="checkbox" name="county" value="嘉義市" onchange="highlightCities()"> 嘉義市</label><br/>
+        <label><input type="checkbox" name="county" value="嘉義縣" onchange="highlightCities()"> 嘉義縣</label><br/>
+        <label><input type="checkbox" name="county" value="臺南市" onchange="highlightCities()"> 臺南市</label><br/>
+        <label><input type="checkbox" name="county" value="高雄市" onchange="highlightCities()"> 高雄市</label><br/>
+        <label><input type="checkbox" name="county" value="屏東縣" onchange="highlightCities()"> 屏東縣</label><br/>
+        <label><input type="checkbox" name="county" value="宜蘭縣" onchange="highlightCities()"> 宜蘭縣</label><br/>
+        <label><input type="checkbox" name="county" value="花蓮縣" onchange="highlightCities()"> 花蓮縣</label><br/>
+        <label><input type="checkbox" name="county" value="臺東縣" onchange="highlightCities()"> 臺東縣</label><br/>
+        <label><input type="checkbox" name="county" value="澎湖縣" onchange="highlightCities()"> 澎湖縣</label><br/>
+        <label><input type="checkbox" name="county" value="金門縣" onchange="highlightCities()"> 金門縣</label><br/>
+        <label><input type="checkbox" name="county" value="連江縣" onchange="highlightCities()"> 連江縣</label>
+      </div>
+    </div><hr/>
+
+    <div class="form-group">
+      <h3>匯入 / 匯出</h3>
+      <input type="file" id="importFile" accept=".json"/>
+      <button class="btn-info" onclick="importData()">匯入</button>
+      <button class="btn-info" onclick="exportMapAsImage()">下載地圖</button>
+      <button class="btn-warning" onclick="exportAllJSON()">全部匯出 JSON</button>
+      <button class="btn-danger" onclick="resetAll()">全部重置</button>
     </div>
-  </header>
-
-  <div class="input-wrap">
-    <!-- 人像 Icon -->
-    <svg class="icon-person" viewBox="0 0 24 24"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/></svg>
-    <input type="text" id="pmId" maxlength="10" placeholder="請輸入 10 碼私訊編號">
   </div>
 
-  <button id="submitBtn">
-    <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 015.93 12.07l4 4a1 1 0 01-1.42 1.42l-4-4A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 100 11 5.5 5.5 0 000-11z"/></svg>
-    查詢
-  </button>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="taiwan_counties.geojson"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
 
-  <div id="errorMsg" class="hidden">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-    <span id="errText"></span>
-  </div>
-</div>
+  <script>
+    /************ 地圖初始化 ************/
+    const map = L.map("map").setView([23.5, 121], 6);
+    const base = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
+      {maxZoom: 18, attribution: "Tiles ©CartoDB"}).addTo(map);
 
-<!-- =============== 查詢結果區 =============== -->
-<main id="resultSection" class="hidden">
-  <header id="topBar">
-    <h2 id="resultTitle"></h2>
-    <div class="ctrl-bar">
-      <button id="darkToggle2" class="ctrl-btn" title="深夜模式">🌙</button>
-      <div id="translate2"></div>
-      <button id="logoutBtn" class="hidden">登出</button>
-    </div>
-  </header>
+    /************ 全域狀態 ************/
+    let pastPoints = [];
+    let currentData = null;
+    let futureData = [];
+    let errorPolygon = null, errorVertices = [], isDrawingError = false;
+    let warningPolygon = null, warningVertices = [], isDrawingWarning = false;
+    let drawnCityPolygons = [];
 
-  <div id="filterBar" class="hidden">
-    <button data-filter="all"  class="active">全部</button>
-    <button data-filter="replied">已回覆</button>
-    <button data-filter="waiting">尚未回覆</button>
-  </div>
+    /************ 共用數學工具 ************/
+    const R_KM = 6371;
+    const deg2rad = d => d * Math.PI / 180, rad2deg = r => r * 180 / Math.PI;
 
-  <table id="msgTable">
-    <thead>
-      <tr><th>時間</th><th>使用者帳號</th><th>私訊編號</th><th>回覆進度</th><th>備註</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</main>
-
-<!-- ========== 資料檔 ========== -->
-<script src="contact.js"></script>
-
-<!-- ========== 主邏輯 ========== -->
-<script>
-document.addEventListener('DOMContentLoaded',()=>{
-  const $=q=>document.querySelector(q);
-
-  /* Elements */
-  const loginCard=$('#loginCard'), resultSec=$('#resultSection');
-  const pmInput=$('#pmId'), submitBtn=$('#submitBtn');
-  const errBox=$('#errorMsg'), errText=$('#errText');
-  const resultTit=$('#resultTitle'), tbody=$('#msgTable tbody');
-  const filterBar=$('#filterBar'), logoutBtn=$('#logoutBtn');
-  /* 深夜按鈕兩顆同功能 */
-  const darkBtns=[$('#darkToggle1'),$('#darkToggle2')];
-  const translate1Elem=$('#translate1'), translate2Elem=$('#translate2');
-  let currentRows=[];
-
-  /* 深夜模式切換 */
-  darkBtns.forEach(btn=>btn.onclick=()=>document.body.classList.toggle('dark'));
-
-  /* 輸入即時驗證、Enter */
-  pmInput.addEventListener('input',()=>errBox.classList.add('hidden'));
-  pmInput.addEventListener('keypress',e=>{if(e.key==='Enter')submitBtn.click();});
-
-  /* 查詢 */
-  submitBtn.onclick=()=>{
-    const id=pmInput.value.trim();
-    errBox.classList.add('hidden');
-
-    /* 管理員 */
-    if(id==='99887765'){
-      currentRows=[...messages].sort(byTimeDesc);
-      enterResult('所有訊息（管理員）');
-      return;
+    function bearing(lat1, lng1, lat2, lng2) {
+      const φ1 = deg2rad(lat1), φ2 = deg2rad(lat2), Δλ = deg2rad(lng2 - lng1);
+      const y = Math.sin(Δλ) * Math.cos(φ2);
+      const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+      return (rad2deg(Math.atan2(y, x)) + 360) % 360;
+    }
+    function haversine(lat1, lng1, lat2, lng2) {
+      const φ1 = deg2rad(lat1), φ2 = deg2rad(lat2),
+            dφ = φ2 - φ1, dλ = deg2rad(lng2 - lng1);
+      const a = Math.sin(dφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(dλ / 2) ** 2;
+      return 2 * R_KM * Math.asin(Math.sqrt(a));
+    }
+    function offsetPoint(lat, lng, brgDeg, distKm) {
+      if (distKm <= 0) return [lat, lng];
+      const δ = distKm / R_KM, θ = deg2rad(brgDeg), φ1 = deg2rad(lat), λ1 = deg2rad(lng);
+      const φ2 = Math.asin(Math.sin(φ1) * Math.cos(δ) + Math.cos(φ1) * Math.sin(δ) * Math.cos(θ));
+      const λ2 = λ1 + Math.atan2(Math.sin(θ) * Math.sin(δ) * Math.cos(φ1),
+                                 Math.cos(δ) - Math.sin(φ1) * Math.sin(φ2));
+      return [rad2deg(φ2), rad2deg(λ2)];
     }
 
-    /* 格式 */
-    if(!/^\d{10}$/.test(id)){
-      return showErr('請輸入 <strong>10 碼</strong> 私訊編號');
+    /************ ★  Monotone Chain Convex Hull  ************/
+    function convexHull(latlngPts) { // pts = [[lng,lat],...]
+      if (latlngPts.length <= 3) return latlngPts.slice();
+      const pts = latlngPts.slice().sort((a, b) => a[0] === b[0] ? a[1] - b[1] : a[0] - b[0]);
+      const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+      const lower = [];
+      for (const p of pts) {
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+        lower.push(p);
+      }
+      const upper = [];
+      for (let i = pts.length - 1; i >= 0; i--) {
+        const p = pts[i];
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+        upper.push(p);
+      }
+      upper.pop(); lower.pop();
+      return lower.concat(upper);
     }
-    /* 個人資料 */
-    const rows=messages.filter(m=>m.pmId===id).sort(byTimeDesc);
-    if(rows.length===0){
-      return showErr(`查無此編號 <strong>${id}</strong>。可能原因：<br>
-      • 編號輸入錯誤<br>• 資料尚未入檔 (非即時同步)`);
-    }
-    currentRows=rows;
-    enterResult(`私訊編號 ${id} 的查詢結果`);
-  };
 
-  /* 篩選 */
-  filterBar.addEventListener('click',e=>{
-    if(e.target.tagName!=='BUTTON')return;
-    filterBar.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
-    e.target.classList.add('active');
-    const f=e.target.dataset.filter;
-    let rows=currentRows;
-    if(f==='replied') rows=rows.filter(r=>r.status==='已回覆');
-    if(f==='waiting') rows=rows.filter(r=>r.status!=='已回覆');
-    renderTable(rows);
+    /************ ★ 依序連線版 自動生成誤差錐 ************/
+function autoCreateErrorCone() {
+  if (!currentData || futureData.length === 0) {
+    alert("請先設定現在位置與未來預測！");
+    return;
+  }
+
+  const samples = [];
+  const ANGLE_STEP = 10; // 誤差圈角度取樣 – 可自行調整
+
+  // 1. 將現在位置的中心點加入樣本
+  samples.push([currentData.lng, currentData.lat]);
+
+  // 2. 將所有未來預測點的中心點加入樣本
+  futureData.forEach(fd => {
+    if (!isNaN(fd.lat) && !isNaN(fd.lng)) {
+      samples.push([fd.lng, fd.lat]);
+    }
   });
 
-  /* 登出 */
-  logoutBtn.onclick=()=>{
-    resultSec.classList.add('hidden');
-    loginCard.classList.remove('hidden');
-    pmInput.value=''; errBox.classList.add('hidden');
-    filterBar.classList.add('hidden');
-    logoutBtn.classList.add('hidden');
-  };
+  // 3. 將沿著路徑插值後的誤差圈邊緣點加入樣本
+  // 構建包含現在和未來點的路徑，用於插值誤差半徑
+  const interpolatedPath = [{lat: currentData.lat, lng: currentData.lng, r: 0}]; // 現在位置誤差半徑設為0
+  futureData.forEach(fd => {
+    if (!isNaN(fd.lat) && !isNaN(fd.lng)) {
+      interpolatedPath.push({lat: fd.lat, lng: fd.lng, r: fd.errorRadius || 0});
+    }
+  });
 
-  /* 共用函式 */
-  const byTimeDesc=(a,b)=>new Date(b.time)-new Date(a.time);
-  const waitingCount=cur=>messages.filter(m=>m.status!=='已回覆' &&
-    new Date(m.time)<new Date(cur.time)).length;
-  function showErr(html){errText.innerHTML=html;errBox.classList.remove('hidden');}
+  const STEP_KM = 25; // 路徑取樣距離 (km)
 
-  function enterResult(title){
-    loginCard.classList.add('hidden');
-    resultSec.classList.remove('hidden');
-    resultTit.textContent=title;
-    filterBar.classList.remove('hidden');
-    logoutBtn.classList.remove('hidden');
-    filterBar.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===0));
-    renderTable(currentRows);
+  for (let i = 0; i < interpolatedPath.length - 1; i++) {
+    const p1 = interpolatedPath[i], p2 = interpolatedPath[i + 1];
+    const segDist = haversine(p1.lat, p1.lng, p2.lat, p2.lng);
+    const n = Math.max(1, Math.ceil(segDist / STEP_KM));
+
+    for (let k = 0; k <= n; k++) {
+      const t = k / n;
+      const lat = p1.lat + (p2.lat - p1.lat) * t;
+      const lng = p1.lng + (p2.lng - p1.lng) * t;
+      const r   = p1.r   + (p2.r   - p1.r)   * t; // 插值誤差半徑
+
+      if (r > 0) { // 只在誤差半徑大於0時生成邊緣點
+        for (let a = 0; a < 360; a += ANGLE_STEP) {
+          const pt = offsetPoint(lat, lng, a, r);
+          samples.push([pt[1], pt[0]]); // [lng,lat] for planar hull
+        }
+      }
+    }
   }
-  function renderTable(rows){
-    tbody.innerHTML='';
-    rows.forEach(r=>{
-      const progress=r.status==='已回覆' ? '已回覆' : `尚須等候 ${waitingCount(r)} 組`;
-      const tr=document.createElement('tr');
-      const stCls=r.status==='已回覆'?'status-replied':'status-waiting';
-      const ntCls=r.note==='優先訊息'?'note-priority':'';
-      tr.innerHTML=`
-        <td data-label="時間">${r.time.replace('T',' ').slice(0,19)}</td>
-        <td data-label="使用者帳號">${r.account}</td>
-        <td data-label="私訊編號">${r.pmId}</td>
-        <td data-label="回覆進度" class="${stCls}">${progress}</td>
-        <td data-label="備註" class="${ntCls}">${r.note}</td>`;
-      tbody.appendChild(tr);
+
+  if (samples.length < 3) {
+    alert("誤差點不足，無法生成誤差錐！");
+    return;
+  }
+
+  // 計算所有樣本點的凸包
+  const hullLngLat = convexHull(samples);
+  const hullLatLng = hullLngLat.map(p => [p[1], p[0]]);
+
+  // 移除舊的誤差錐並繪製新的
+  if (errorPolygon) map.removeLayer(errorPolygon);
+  errorPolygon = L.polygon(hullLatLng, {fillColor: "blue", fillOpacity: 0.2, stroke: false}).addTo(map);
+  // 更新 errorVertices，雖然在這裡主要由凸包生成，但保留以防手動繪製模式
+  errorVertices = hullLatLng.map(p => L.latLng(p[0], p[1]));
+  redrawAll();
+}
+
+
+    /************ 過去位置 ************/
+    function addPastPoint() {
+      const lat = parseFloat(document.getElementById("past-lat").value);
+      const lng = parseFloat(document.getElementById("past-lon").value);
+      if (isNaN(lat) || isNaN(lng)) { alert("經緯度錯誤"); return; }
+      pastPoints.push([lat, lng]);
+      document.getElementById("past-lat").value = "";
+      document.getElementById("past-lon").value = "";
+      renderPastList(); redrawAll();
+    }
+    function renderPastList() {
+      const c = document.getElementById("past-list"); c.innerHTML = "";
+      pastPoints.forEach((pt, i) => {
+        const div = document.createElement("div");
+        div.innerHTML = `(${pt[1].toFixed(2)}, ${pt[0].toFixed(2)})
+            <button class="btn-danger" style="padding:2px 6px;font-size:.8rem;"
+            onclick="removePastPoint(${i})">刪除</button>`;        c.appendChild(div);
+      });
+    }
+    function removePastPoint(i) { pastPoints.splice(i, 1); renderPastList(); redrawAll(); }
+
+    /************ 現在位置 ************/
+    function setCurrent() {
+      const lat = parseFloat(document.getElementById("current-lat").value);
+      const lng = parseFloat(document.getElementById("current-lon").value);
+      if (isNaN(lat) || isNaN(lng)) { alert("經緯度錯誤"); return; }
+      const intensity = document.getElementById("current-intensity").value;
+      const time = document.getElementById("current-time").value || "";
+      const r7_NW = parseFloat(document.getElementById("current-r7-NW").value) || 0;
+      const r7_NE = parseFloat(document.getElementById("current-r7-NE").value) || 0;
+      const r7_SE = parseFloat(document.getElementById("current-r7-SE").value) || 0;
+      const r7_SW = parseFloat(document.getElementById("current-r7-SW").value) || 0;
+      const r10_NW = parseFloat(document.getElementById("current-r10-NW").value) || 0;
+      const r10_NE = parseFloat(document.getElementById("current-r10-NE").value) || 0;
+      const r10_SE = parseFloat(document.getElementById("current-r10-SE").value) || 0;
+      const r10_SW = parseFloat(document.getElementById("current-r10-SW").value) || 0;
+
+      if (currentData && currentData.labelLine) map.removeLayer(currentData.labelLine);
+      if (currentData && currentData.labelMarker) map.removeLayer(currentData.labelMarker);
+
+      currentData = {lat, lng, intensity, time,
+        r7_NW, r7_NE, r7_SE, r7_SW,
+        r10_NW, r10_NE, r10_SE, r10_SW,
+        labelLat: null, labelLng: null, labelLine: null, labelMarker: null};
+      redrawAll();
+    }
+
+    /************ 未來預報 ************/
+    function addFutureItem() {
+      const idx = futureData.length;
+      const container = document.getElementById("future-container");
+      const div = document.createElement("div");
+      div.className = "future-item"; div.id = `future-item-${idx}`;
+      div.innerHTML = `<h4>未來位置 ${idx + 1}</h4>
+        <div class="form-inline">
+          <div><label>經度</label><input type="number" step="0.01" id="f-lon-${idx}"/></div>
+          <div><label>緯度</label><input type="number" step="0.01" id="f-lat-${idx}"/></div>
+          <div><label>強度</label>
+            <select id="f-intensity-${idx}">
+              <option value="TD">TD</option><option value="TS">TS</option>
+              <option value="ST">ST</option><option value="TY">TY</option>
+            </select></div>
+          <div><label>7級</label><input type="number" step="1" id="f-r7-${idx}"/></div>
+          <div><label>10級</label><input type="number" step="1" id="f-r10-${idx}"/></div>
+        </div>
+        <div class="form-inline" style="margin-top:5px;">
+          <div><label>誤差</label><input type="number" step="1" id="f-error-${idx}"/></div>
+          <div><label>時間</label><input type="text" id="f-time-${idx}" placeholder="如: 7/13 08時"/></div>
+          <div><input type="checkbox" id="f-showSymbol-${idx}" checked><label>符號</label></div>
+          <div><input type="checkbox" id="f-showWind-${idx}" checked><label>風圈</label></div>
+          <div><input type="checkbox" id="f-showError-${idx}" checked><label>誤差圈</label></div>
+        </div>
+        <div style="margin-top:5px;">
+          <button class="btn-primary" onclick="updateFuture(${idx})">更新</button>
+          <button class="btn-danger" onclick="deleteFutureItem(${idx})">刪除</button>
+        </div>`;      container.appendChild(div);
+      futureData.push({lat: NaN, lng: NaN, intensity: "TD", r7: 0, r10: 0, errorRadius: 0, time: "",
+                       showSymbol: true, showWind: true, showError: true,
+                       labelLat: null, labelLng: null, labelLine: null, labelMarker: null, marker: null});
+    }
+
+    function updateFuture(idx) {
+      const lat = parseFloat(document.getElementById(`f-lat-${idx}`).value);
+      const lng = parseFloat(document.getElementById(`f-lon-${idx}`).value);
+      if (isNaN(lat) || isNaN(lng)) { alert("經緯度錯誤"); return; }
+      const intensity = document.getElementById(`f-intensity-${idx}`).value;
+      const r7 = parseFloat(document.getElementById(`f-r7-${idx}`).value) || 0;
+      const r10 = parseFloat(document.getElementById(`f-r10-${idx}`).value) || 0;
+      const errorRadius = parseFloat(document.getElementById(`f-error-${idx}`).value) || 0;
+      const time = document.getElementById(`f-time-${idx}`).value || "";
+      const showSymbol = document.getElementById(`f-showSymbol-${idx}`).checked;
+      const showWind = document.getElementById(`f-showWind-${idx}`).checked;
+      const showError = document.getElementById(`f-showError-${idx}`).checked;
+
+      if (futureData[idx].labelLine) map.removeLayer(futureData[idx].labelLine);
+      if (futureData[idx].labelMarker) map.removeLayer(futureData[idx].labelMarker);
+      if (futureData[idx].marker) map.removeLayer(futureData[idx].marker);
+
+      futureData[idx] = {lat, lng, intensity, r7, r10, errorRadius, time,
+                         showSymbol, showWind, showError,
+                         labelLat: null, labelLng: null, labelLine: null, labelMarker: null, marker: null};
+      redrawAll();
+    }
+
+    function deleteFutureItem(idx) {
+      if (futureData[idx].labelLine) map.removeLayer(futureData[idx].labelLine);
+      if (futureData[idx].labelMarker) map.removeLayer(futureData[idx].labelMarker);
+      if (futureData[idx].marker) map.removeLayer(futureData[idx].marker);
+      futureData.splice(idx, 1);
+      document.getElementById("future-container").innerHTML = "";
+      const tmp = [...futureData]; futureData.length = 0;
+      tmp.forEach(() => addFutureItem());
+      tmp.forEach((v, i) => {
+        document.getElementById(`f-lat-${i}`).value = v.lat;
+        document.getElementById(`f-lon-${i}`).value = v.lng;
+        document.getElementById(`f-intensity-${i}`).value = v.intensity;
+        document.getElementById(`f-r7-${i}`).value = v.r7;
+        document.getElementById(`f-r10-${i}`).value = v.r10;
+        document.getElementById(`f-error-${i}`).value = v.errorRadius;
+        document.getElementById(`f-time-${i}`).value = v.time;
+        document.getElementById(`f-showSymbol-${i}`).checked = v.showSymbol;
+        document.getElementById(`f-showWind-${i}`).checked = v.showWind;
+        document.getElementById(`f-showError-${i}`).checked = v.showError;
+        updateFuture(i);
+      });
+    }
+
+    /************ 風圈與標籤輔助 ************/
+    function addTyphoonMarker(lat, lng, intensity, draggable) {
+      const iconUrl = getIconUrl(intensity);
+      return L.marker([lat, lng], {icon: L.icon({iconUrl, iconSize: [28, 28], iconAnchor: [14, 14]}), draggable});
+    }
+    function getIconUrl(i) {
+      switch (i) {
+        case "TD": return "td1.png"; case "TS": return "ts1.png";
+        case "ST": return "st1.png"; case "TY": return "ty.png"; default: return "default.png";
+      }
+    }
+    function drawQuadrantWindCircle(lat, lng, rNW, rNE, rSE, rSW, opt = {}) {
+      const arc = (s, e, r) => {
+        if (r <= 0) return [];
+        const pts = [], latRad = lat * Math.PI / 180;
+        for (let i = 0; i <= 10; i++) {
+          const d = s + (e - s) * i / 10, rad = d * Math.PI / 180;
+          const dLat = (r * Math.cos(rad)) / 111;
+          const dLng = (r * Math.sin(rad)) / (111 * Math.cos(latRad));
+          pts.push([lat + dLat, lng + dLng]);
+        }
+        return pts;
+      };
+      const pts = [...arc(270, 360, rNW), ...arc(0, 90, rNE), ...arc(90, 180, rSE), ...arc(180, 270, rSW)];
+      return L.polygon(pts, {color: opt.color || "orange", weight: 1, fillColor: opt.fillColor || "orange", fillOpacity: opt.fillOpacity || 0.3});
+    }
+
+    function placeTimeLabel(obj, baseLat, baseLng, radius) {
+      if (!obj.time) return;
+      if (obj.labelLat == null || obj.labelLng == null) {
+        const offset = radius + 10, rad45 = Math.PI / 4;
+        const dLat = offset / 111;
+        const dLng = offset / (111 * Math.cos(baseLat * Math.PI / 180));
+        obj.labelLat = baseLat + dLat * Math.sin(rad45);
+        obj.labelLng = baseLng + dLng * Math.cos(rad45);
+      }
+      const shorten = .85;
+      const tipLat = baseLat + (obj.labelLat - baseLat) * shorten;
+      const tipLng = baseLng + (obj.labelLng - baseLng) * shorten;
+
+      if (obj.labelLine) map.removeLayer(obj.labelLine);
+      if (obj.labelMarker) map.removeLayer(obj.labelMarker);
+
+      obj.labelLine = L.polyline([[baseLat, baseLng], [tipLat, tipLng]],
+        {color: "black", weight: 1.5, dashArray: "1,4"}).addTo(map);
+      obj.labelMarker = L.marker([obj.labelLat, obj.labelLng],
+        {icon: L.divIcon({className: "", html: `<div class="time-label">${obj.time}</div>`}), draggable: true}).addTo(map);
+      obj.labelMarker.on("drag", e => {
+        const p = e.target.getLatLng();
+        obj.labelLat = p.lat; obj.labelLng = p.lng;
+        const tipLat2 = baseLat + (p.lat - baseLat) * shorten;
+        const tipLng2 = baseLng + (p.lng - baseLng) * shorten;
+        obj.labelLine.setLatLngs([[baseLat, baseLng], [tipLat2, tipLng2]]);
+      });
+    }
+
+    /************ 誤差 / 警戒多邊形 手繪 ************/
+    function toggleErrorDraw() {
+      isDrawingError = !isDrawingError;
+      if (isDrawingError) {
+        alert("點擊地圖可繪製誤差範圍 (至少 3 點)，再按一次離開。");
+        if (errorPolygon) { map.removeLayer(errorPolygon); errorPolygon = null; }
+        errorVertices = []; map.getContainer().classList.add("crosshair-cursor");
+      } else {
+        map.getContainer().classList.remove("crosshair-cursor");
+        finishErrorPolygon();
+      }
+    }
+    function deleteLastErrorVertex() { if (errorVertices.length) { errorVertices.pop(); updateErrorPolygon(); } }
+    function finishErrorPolygon() {
+      if (errorPolygon && errorVertices.length >= 3) errorPolygon.setStyle({fillColor: "blue", fillOpacity: .2, stroke: false});
+      isDrawingError = false; map.getContainer().classList.remove("crosshair-cursor"); redrawAll();
+    }
+    function updateErrorPolygon() {
+      if (!errorPolygon) errorPolygon = L.polygon(errorVertices, {fillColor: "blue", fillOpacity: .2, stroke: false}).addTo(map);
+      else errorPolygon.setLatLngs(errorVertices);
+    }
+
+    function toggleWarningDraw() {
+      isDrawingWarning = !isDrawingWarning;
+      if (isDrawingWarning) {
+        alert("點擊地圖可繪製警戒區 (至少 3 點)，再按一次離開。");
+        if (warningPolygon) { map.removeLayer(warningPolygon); warningPolygon = null; }
+        warningVertices = []; map.getContainer().classList.add("crosshair-cursor");
+      } else {
+        map.getContainer().classList.remove("crosshair-cursor");
+        finishWarningPolygon();
+      }
+    }
+    function deleteLastWarningVertex() { if (warningVertices.length) { warningVertices.pop(); updateWarningPolygon(); } }
+    function finishWarningPolygon() {
+      if (warningPolygon && warningVertices.length >= 3) warningPolygon.setStyle({fillColor: "red", fillOpacity: .2, stroke: false});
+      isDrawingWarning = false; map.getContainer().classList.remove("crosshair-cursor"); redrawAll();
+    }
+    function updateWarningPolygon() {
+      if (!warningPolygon) warningPolygon = L.polygon(warningVertices, {fillColor: "red", fillOpacity: .2, stroke: false}).addTo(map);
+      else warningPolygon.setLatLngs(warningVertices);
+    }
+
+    /************ 縣市警戒 ************/
+    function highlightCities() {
+      drawnCityPolygons.forEach(p => map.removeLayer(p));
+      drawnCityPolygons = [];
+      const sel = Array.from(document.querySelectorAll('input[name="county"]:checked')).map(i => i.value);
+      sel.forEach(city => {
+        geojsonData.features.forEach(f => {
+          if (f.properties.name === city) {
+            const layer = L.geoJSON(f, {style: {color: "transparent", fillColor: "red", fillOpacity: .15}}).addTo(map);
+            drawnCityPolygons.push(layer);
+          }
+        });
+      });
+    }
+
+    /************ 地圖點擊 (手繪模式) ************/
+    map.on("click", e => {
+      if (isDrawingError) { errorVertices.push(e.latlng); updateErrorPolygon(); }
+      if (isDrawingWarning) { warningVertices.push(e.latlng); updateWarningPolygon(); }
     });
-  }
 
-  /* ===== Google 翻譯小工具兩處共用 ===== */
-  window.googleTranslateElementInit=()=>{
-    const config={
-      pageLanguage:'zh-TW',
-      includedLanguages:'zh-TW,en,ja,ko',
-      layout:google.translate.TranslateElement.InlineLayout.HORIZONTAL
-    };
-    new google.translate.TranslateElement(config,'translate1');
-    new google.translate.TranslateElement(config,'translate2');
-  };
-});
-</script>
-<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    /************ 地圖重繪 ************/
+    function redrawAll() {
+      map.eachLayer(l => { if (l !== base) map.removeLayer(l); });
+
+      if (pastPoints.length > 1) L.polyline(pastPoints, {color: "#000", lineCap: "round"}).addTo(map);
+
+      if (currentData) {
+        const mk = addTyphoonMarker(currentData.lat, currentData.lng, currentData.intensity, false).addTo(map);
+        if ([currentData.r7_NW, currentData.r7_NE, currentData.r7_SE, currentData.r7_SW].some(r => r > 0)) {
+          drawQuadrantWindCircle(currentData.lat, currentData.lng,
+            currentData.r7_NW, currentData.r7_NE, currentData.r7_SE, currentData.r7_SW,
+            {color: "orange", fillColor: "orange", fillOpacity: .2}).addTo(map);
+        }
+        if ([currentData.r10_NW, currentData.r10_NE, currentData.r10_SE, currentData.r10_SW].some(r => r > 0)) {
+          drawQuadrantWindCircle(currentData.lat, currentData.lng,
+            currentData.r10_NW, currentData.r10_NE, currentData.r10_SE, currentData.r10_SW,
+            {color: "red", fillColor: "red", fillOpacity: .2}).addTo(map);
+        }
+        const maxR = Math.max(currentData.r7_NW, currentData.r7_NE, currentData.r7_SE, currentData.r7_SW,
+                              currentData.r10_NW, currentData.r10_NE, currentData.r10_SE, currentData.r10_SW);
+        placeTimeLabel(currentData, currentData.lat, currentData.lng, maxR);
+      }
+
+      const chain = [...pastPoints];
+      if (currentData) chain.push([currentData.lat, currentData.lng]);
+      futureData.forEach(fd => { if (!isNaN(fd.lat)) chain.push([fd.lat, fd.lng]); });
+      if (chain.length > 1) {
+        const startFuture = pastPoints.length + (currentData ? 1 : 0);
+        for (let i = 0; i < chain.length - 1; i++) {
+          L.polyline([chain[i], chain[i + 1]], {
+            color: "#000",
+            dashArray: i >= startFuture - 1 ? "5,5" : null,
+            lineCap: "round"
+          }).addTo(map);
+        }
+      }
+
+      futureData.forEach((fd, idx) => {
+        if (isNaN(fd.lat) || isNaN(fd.lng)) return;
+        if (fd.showSymbol) {
+          fd.marker = addTyphoonMarker(fd.lat, fd.lng, fd.intensity, true).addTo(map);
+          fd.marker.on("dragend", e => {
+            const p = e.target.getLatLng();
+            fd.lat = p.lat; fd.lng = p.lng;
+            document.getElementById(`f-lat-${idx}`).value = p.lat.toFixed(4);
+            document.getElementById(`f-lon-${idx}`).value = p.lng.toFixed(4);
+            redrawAll();
+          });
+        }
+        if (fd.showWind && fd.r7 > 0) L.circle([fd.lat, fd.lng], {color: "orange", fillOpacity: 0, radius: fd.r7 * 1000, dashArray: "5,5"}).addTo(map);
+        if (fd.showWind && fd.r10 > 0) L.circle([fd.lat, fd.lng], {color: "red", fillOpacity: 0, radius: fd.r10 * 1000, dashArray: "5,5"}).addTo(map);
+        if (fd.showError && fd.errorRadius > 0) L.circle([fd.lat, fd.lng], {color: "blue", fillOpacity: 0, radius: fd.errorRadius * 1000, dashArray: "5,5"}).addTo(map);
+
+        const maxR = fd.showWind ? Math.max(fd.r7, fd.r10, fd.errorRadius) : (fd.showError ? fd.errorRadius : 0);
+        placeTimeLabel(fd, fd.lat, fd.lng, maxR);
+      });
+
+      if (errorPolygon) errorPolygon.addTo(map);
+      if (warningPolygon) warningPolygon.addTo(map);
+      drawnCityPolygons.forEach(p => p.addTo(map));
+    }
+
+    /************ 匯出地圖截圖 ************/
+    function exportMapAsImage() {
+      html2canvas(document.getElementById("map")).then(canvas => {
+        const a = document.createElement("a");
+        a.download = "typhoon_map.png";
+        a.href = canvas.toDataURL("image/png");
+        a.click();
+      });
+    }
+
+    /************ 匯出 JSON ************/
+    function exportAllJSON() {
+      downloadJSON({
+        pastPoints, currentData, futureData,
+        errorPolygon: errorPolygon ? errorPolygon.getLatLngs()[0].map(p => [p.lat, p.lng]) : [],
+        warningPolygon: warningPolygon ? warningPolygon.getLatLngs()[0].map(p => [p.lat, p.lng]) : [],
+        counties: Array.from(document.querySelectorAll('input[name="county"]:checked')).map(i => i.value)
+      }, "typhoon_data_all.json");
+    }
+    function downloadJSON(obj, filename) {
+      const blob = new Blob([JSON.stringify(obj, null, 2)], {type: "application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    /************ 匯入 ************/
+    function importData() {
+      const f = document.getElementById("importFile").files[0];
+      if (!f) { alert("請選檔案"); return; }
+      const rdr = new FileReader();
+      rdr.onload = e => {
+        try {
+          const j = JSON.parse(e.target.result);
+          if (j.pastPoints) { pastPoints = j.pastPoints; renderPastList(); }
+          if (j.currentData) { currentData = j.currentData; }
+          if (j.futureData) { futureData = j.futureData; }
+          if (j.errorPolygon && j.errorPolygon.length >= 3) {
+            errorPolygon = L.polygon(j.errorPolygon, {fillColor: "blue", fillOpacity: .2, stroke: false});
+          }
+          if (j.warningPolygon && j.warningPolygon.length >= 3) {
+            warningPolygon = L.polygon(j.warningPolygon, {fillColor: "red", fillOpacity: .2, stroke: false});
+          }
+          if (j.counties) {
+            document.querySelectorAll('input[name="county"]').forEach(cb => {
+              cb.checked = j.counties.includes(cb.value);
+            });
+            highlightCities();
+          }
+          redrawAll(); alert("匯入成功");
+        } catch (err) { alert("JSON 解析失敗"); }
+      };
+      rdr.readAsText(f);
+    }
+
+    /************ 重置 ************/
+    function resetAll() {
+      if (!confirm("確定要全部重置?")) return;
+      pastPoints = []; currentData = null; futureData = [];
+      if (errorPolygon) map.removeLayer(errorPolygon); errorPolygon = null; errorVertices = [];
+      if (warningPolygon) map.removeLayer(warningPolygon); warningPolygon = null; warningVertices = [];
+      drawnCityPolygons.forEach(p => map.removeLayer(p)); drawnCityPolygons = [];
+      document.querySelectorAll('input[name="county"]').forEach(cb => cb.checked = false);
+      document.getElementById("past-list").innerHTML = "";
+      document.getElementById("future-container").innerHTML = ""; futureData = [];
+      ["past-lon", "past-lat", "current-lon", "current-lat", "current-r7-NW", "current-r7-NE", "current-r7-SE", "current-r7-SW", "current-r10-NW", "current-r10-NE", "current-r10-SE", "current-r10-SW", "current-time"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = "";
+      });
+      document.getElementById("current-intensity").value = "TD";
+      redrawAll();
+    }
+
+    // Initial draw on page load
+    redrawAll();
+  </script>
+  <script>
+    // These are for the html generation for the innerHTML part, not part of the core logic.
+    // They are needed because the backticks used in the original HTML were escaped by the previous step.
+    // They don't affect the core `autoCreateErrorCone` logic.
+    const pastListItemTemplate = (pt, i) => `(${pt[1].toFixed(2)}, ${pt[0].toFixed(2)})
+            <button class="btn-danger" style="padding:2px 6px;font-size:.8rem;"
+            onclick="removePastPoint(${i})">刪除</button>`;
+
+    const futureItemTemplate = (idx) => `<h4>未來位置 ${idx + 1}</h4>
+        <div class="form-inline">
+          <div><label>經度</label><input type="number" step="0.01" id="f-lon-${idx}"/></div>
+          <div><label>緯度</label><input type="number" step="0.01" id="f-lat-${idx}"/></div>
+          <div><label>強度</label>
+            <select id="f-intensity-${idx}">
+              <option value="TD">TD</option><option value="TS">TS</option>
+              <option value="ST">ST</option><option value="TY">TY</option>
+            </select></div>
+          <div><label>7級</label><input type="number" step="1" id="f-r7-${idx}"/></div>
+          <div><label>10級</label><input type="number" step="1" id="f-r10-${idx}"/></div>
+        </div>
+        <div class="form-inline" style="margin-top:5px;">
+          <div><label>誤差</label><input type="number" step="1" id="f-error-${idx}"/></div>
+          <div><label>時間</label><input type="text" id="f-time-${idx}" placeholder="如: 7/13 08時"/></div>
+          <div><input type="checkbox" id="f-showSymbol-${idx}" checked><label>符號</label></div>
+          <div><input type="checkbox" id="f-showWind-${idx}" checked><label>風圈</label></div>
+          <div><input type="checkbox" id="f-showError-${idx}" checked><label>誤差圈</label></div>
+        </div>
+        <div style="margin-top:5px;">
+          <button class="btn-primary" onclick="updateFuture(${idx})">更新</button>
+          <button class="btn-danger" onclick="deleteFutureItem(${idx})">刪除</button>
+        </div>`;
+
+    const timeLabelTemplate = (time) => `<div class="time-label">${time}</div>`;
+
+    // Re-assign functions that use these templates
+    function renderPastList() {
+        const c = document.getElementById("past-list"); c.innerHTML = "";
+        pastPoints.forEach((pt, i) => {
+            const div = document.createElement("div");
+            div.innerHTML = pastListItemTemplate(pt, i);
+            c.appendChild(div);
+        });
+    }
+
+    function addFutureItem() {
+        const idx = futureData.length;
+        const container = document.getElementById("future-container");
+        const div = document.createElement("div");
+        div.className = "future-item"; div.id = `future-item-${idx}`;
+        div.innerHTML = futureItemTemplate(idx);
+        container.appendChild(div);
+        futureData.push({lat: NaN, lng: NaN, intensity: "TD", r7: 0, r10: 0, errorRadius: 0, time: "",
+                       showSymbol: true, showWind: true, showError: true,
+                       labelLat: null, labelLng: null, labelLine: null, labelMarker: null, marker: null});
+    }
+
+    function placeTimeLabel(obj, baseLat, baseLng, radius) {
+        if (!obj.time) return;
+        if (obj.labelLat == null || obj.labelLng == null) {
+            const offset = radius + 10, rad45 = Math.PI / 4;
+            const dLat = offset / 111;
+            const dLng = offset / (111 * Math.cos(baseLat * Math.PI / 180));
+            obj.labelLat = baseLat + dLat * Math.sin(rad45);
+            obj.labelLng = baseLng + dLng * Math.cos(rad45);
+        }
+        const shorten = .85;
+        const tipLat = baseLat + (obj.labelLat - baseLat) * shorten;
+        const tipLng = baseLng + (obj.labelLng - baseLng) * shorten;
+
+        if (obj.labelLine) map.removeLayer(obj.labelLine);
+        if (obj.labelMarker) map.removeLayer(obj.labelMarker);
+
+        obj.labelLine = L.polyline([[baseLat, baseLng], [tipLat, tipLng]],
+            {color: "black", weight: 1.5, dashArray: "1,4"}).addTo(map);
+        obj.labelMarker = L.marker([obj.labelLat, obj.labelLng],
+            {icon: L.divIcon({className: "", html: timeLabelTemplate(obj.time)}), draggable: true}).addTo(map);
+        obj.labelMarker.on("drag", e => {
+            const p = e.target.getLatLng();
+            obj.labelLat = p.lat; obj.labelLng = p.lng;
+            const tipLat2 = baseLat + (p.lat - baseLat) * shorten;
+            const tipLng2 = baseLng + (p.lng - baseLng) * shorten;
+            obj.labelLine.setLatLngs([[baseLat, baseLng], [tipLat2, tipLng2]]);
+        });
+    }
+
+  </script>
 </body>
 </html>
