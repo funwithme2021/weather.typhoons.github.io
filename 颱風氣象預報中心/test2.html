@@ -197,62 +197,65 @@
       return lower.concat(upper);
     }
 
-    /************ ★ 依序連線版 自動生成誤差錐 ************/
-function autoCreateErrorCone() {
+  /************ ★ 依序連線版 自動生成誤差錐 (修正重複宣告與 .at) ************/
+function autoCreateErrorCone () {
   if (!currentData || futureData.length === 0) {
     alert("請先設定現在位置和未來預測！");
     return;
   }
 
-  // 準備全部誤差圈
+  /* ---------- 0. 蒐集所有「中心＋誤差半徑」資料 ---------- */
   const allCircles = [
-    {lat: currentData.lat, lng: currentData.lng, r: currentData.errorRadius || 0}
+    { lat: currentData.lat, lng: currentData.lng, r: currentData.errorRadius || 0 }
   ].concat(
     futureData
       .filter(fd => !isNaN(fd.lat) && !isNaN(fd.lng))
       .map(fd => ({ lat: fd.lat, lng: fd.lng, r: fd.errorRadius || 0 }))
   );
+
   if (allCircles.length < 2) {
     alert("至少要兩個誤差圈才能畫錐形！");
     return;
   }
 
-  // 1. 沿路徑插值生成小圓
-  const insertStep = 20; // 公里
-  let fineCircles = [];
+  /* ---------- 1. 沿路徑插值小圓 ---------- */
+  const insertStep = 5; // km
+  const fineCircles = [];
   for (let i = 0; i < allCircles.length - 1; i++) {
-    const A = allCircles[i], B = allCircles[i+1];
+    const A = allCircles[i], B = allCircles[i + 1];
     const d = haversine(A.lat, A.lng, B.lat, B.lng);
     const steps = Math.ceil(d / insertStep);
+
     for (let s = 0; s < steps; s++) {
       const t = s / steps;
-      // 線性插值位置
-      const lat = A.lat + (B.lat - A.lat) * t;
-      const lng = A.lng + (B.lng - A.lng) * t;
-      // 半徑等差插值
-      const r = A.r + (B.r - A.r) * t;
-      fineCircles.push({lat, lng, r});
+      fineCircles.push({
+        lat: A.lat + (B.lat - A.lat) * t,
+        lng: A.lng + (B.lng - A.lng) * t,
+        r  : A.r  + (B.r  - A.r ) * t
+      });
     }
   }
-  fineCircles.push(allCircles[allCircles.length-1]); // 最後一點
+  fineCircles.push(allCircles[allCircles.length - 1]); // 把最後那顆也推進來
 
-  // 2. 先移除已存在的誤差圓
-  if (window.errorCircles) {
-    window.errorCircles.forEach(c => map.removeLayer(c));
-  }
+  /* ---------- 2. 清除舊誤差圈 ---------- */
+  (window.errorCircles || []).forEach(c => map.removeLayer(c));
   window.errorCircles = [];
-  // 3. 每個插值圓畫上去
+
+  /* ---------- 3. 畫每顆誤差圈 ---------- */
   fineCircles.forEach(c => {
     if (c.r > 0) {
-      let circ = L.circle([c.lat, c.lng], {radius: c.r * 1000, color: "blue", fillColor: "blue", fillOpacity: 0.14, weight: 0});
-      circ.addTo(map);
+      const circ = L.circle([c.lat, c.lng], {
+        radius      : c.r * 1000,
+        color       : "blue",
+        fillColor   : "blue",
+        fillOpacity : 0.14,
+        weight      : 0
+      }).addTo(map);
       window.errorCircles.push(circ);
     }
   });
 
-  // 4. 最外層誤差多邊形覆蓋（用你現有的pts演算法生成）
-  // ...（沿用你的右側-弧-左側方式生成pts）
-  // 以下與你原本一致
+  /* ---------- 4. 外框多邊形 ---------- */
   function getCircleEdge(circleA, circleB, isRight) {
     const dx = circleB.lng - circleA.lng, dy = circleB.lat - circleA.lat;
     const theta = Math.atan2(dy, dx);
@@ -271,34 +274,57 @@ function autoCreateErrorCone() {
       circle.lng + circle.r * Math.cos(phi) / (111 * Math.cos(circle.lat * Math.PI / 180))
     ];
   }
+
   const rightSide = [], leftSide = [];
   for (let i = 0; i < allCircles.length - 1; i++) rightSide.push(getCircleEdge(allCircles[i], allCircles[i + 1], true));
   rightSide.push(getCircleEdgeFinal(allCircles[allCircles.length - 1], allCircles[allCircles.length - 2], true));
   for (let i = 0; i < allCircles.length - 1; i++) leftSide.push(getCircleEdge(allCircles[i], allCircles[i + 1], false));
   leftSide.push(getCircleEdgeFinal(allCircles[allCircles.length - 1], allCircles[allCircles.length - 2], false));
+
   const N = 36;
   function getAngle(lat, lng, center) {
     return Math.atan2(lat - center.lat, lng - center.lng);
   }
-  const last = allCircles[allCircles.length - 1];
+  const lastCircle = allCircles[allCircles.length - 1];
   const ptRight = rightSide[rightSide.length - 1], ptLeft = leftSide[leftSide.length - 1];
-  let angRight = getAngle(ptRight[0], ptRight[1], last), angLeft = getAngle(ptLeft[0], ptLeft[1], last);
+  let angRight = getAngle(ptRight[0], ptRight[1], lastCircle),
+      angLeft  = getAngle(ptLeft[0],  ptLeft[1],  lastCircle);
   if (angLeft < angRight) angLeft += 2 * Math.PI;
+
   const arcPts = [];
   for (let i = 1; i < N; i++) {
     const t = angRight + (angLeft - angRight) * i / N;
     arcPts.push([
-      last.lat + last.r * Math.sin(t) / 111,
-      last.lng + last.r * Math.cos(t) / (111 * Math.cos(last.lat * Math.PI / 180))
+      lastCircle.lat + lastCircle.r * Math.sin(t) / 111,
+      lastCircle.lng + lastCircle.r * Math.cos(t) / (111 * Math.cos(lastCircle.lat * Math.PI / 180))
     ]);
   }
   const pts = rightSide.concat(arcPts, leftSide.reverse());
 
-  // 最外多邊形疊在最上面
   if (errorPolygon) map.removeLayer(errorPolygon);
-  errorPolygon = L.polygon(pts, {fillColor: "blue", fillOpacity: 0.12, stroke: false}).addTo(map);
+  errorPolygon = L.polygon(pts, { fillColor: "blue", fillOpacity: 0.12, stroke: false }).addTo(map);
   errorVertices = pts.map(p => L.latLng(p[0], p[1]));
-  redrawAll();
+
+  /* ---------- 5. 最後誤差圈整圈鋪滿 ---------- */
+ /* ---------- 5. 記住最後圓的位置與半徑 ---------- */
+window.errorLastCircle = {            // ← 全域記憶
+  lat : lastCircle.lat,
+  lng : lastCircle.lng,
+  r   : lastCircle.r
+};
+
+/* ---------- 6. 重新統一重繪 ---------- */
+redrawAll();
+/* === 補繪最後誤差圈整圈實心底色 === */
+if (window.errorLastCircle && window.errorLastCircle.r > 0) {
+  L.circle([window.errorLastCircle.lat, window.errorLastCircle.lng], {
+    radius      : window.errorLastCircle.r * 1000,
+    color       : "blue",      // 邊框可有可無；要隱藏就 stroke:false
+    fillColor   : "blue",
+    fillOpacity : 0.12,
+    stroke      : false        // 只要填色不要邊
+  }).addTo(map);
+}
 }
 
 
@@ -434,7 +460,7 @@ function autoCreateErrorCone() {
     /************ 風圈與標籤輔助 ************/
     function addTyphoonMarker(lat, lng, intensity, draggable) {
       const iconUrl = getIconUrl(intensity);
-      return L.marker([lat, lng], {icon: L.icon({iconUrl, iconSize: [28, 28], iconAnchor: [14, 14]}), draggable});
+      return L.marker([lat, lng], {icon: L.icon({iconUrl, iconSize: [21, 21], iconAnchor: [10.5, 10.5]}), draggable});
     }
     function getIconUrl(i) {
       switch (i) {
